@@ -1,0 +1,48 @@
+server:
+  # Behind an ingress/load balancer: honour X-Forwarded-* so OAuth redirect URIs use the public https host.
+  forward-headers-strategy: framework
+spring:
+  application:
+    name: backend
+  config:
+    # Local dev: load services/backend/.env (gitignored) when present.
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:nimbus}
+    username: ${POSTGRES_USER:nimbus}
+    password: ${POSTGRES_PASSWORD:changeme}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  modulith:
+    events:
+      republish-outstanding-events-on-restart: true
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope: read:user,user:email
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        readiness:
+          include: readinessState,db,redis
