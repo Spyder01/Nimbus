@@ -223,3 +223,12 @@
   .caret, .node-in, .edge-in, .marquee-track, .sheen:hover::after { animation: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
 }
+
+/* indeterminate progress bar (queued/running deployments) */
+@keyframes nimbus-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+.indeterminate::after {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 30%; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--brand-to), transparent);
+  animation: nimbus-indeterminate 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .indeterminate::after { animation: none; width: 100%; opacity: .4; } }

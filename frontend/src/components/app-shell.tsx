@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
-import { NavLink, Navigate, Outlet } from 'react-router'
+import { NavLink, Navigate, Outlet, useMatch } from 'react-router'
 import { Avatar } from '@/components/avatar'
 import { Logo } from '@/components/logo'
 import { Splash } from '@/components/splash'
@@ -45,6 +45,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   const { me, loading, signOut } = useSession()
   const [collapsed, setCollapsed] = useCollapsed()
+  const onCanvas = !!useMatch('/apps/:id')
   if (loading) return <Splash />
   if (!me || !me.profileUpdated) return <Navigate to={homeFor(me)} replace />
 
@@ -131,7 +132,7 @@ export function AppShell() {
         </nav>
       </header>
 
-      <main className="min-w-0 flex-1 px-5 py-8 md:px-10 md:py-10">
+      <main className={cn('min-w-0 flex-1', !onCanvas && 'px-5 py-8 md:px-10 md:py-10')}>
         <Outlet />
       </main>
     </div>

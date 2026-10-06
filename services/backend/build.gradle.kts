@@ -29,6 +29,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-session-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.flywaydb:flyway-database-postgresql")
@@ -80,6 +81,8 @@ tasks.withType<Test> {
 // Embed the UI: if the frontend has been built (frontend/dist), ship it inside the jar under /static.
 // Build it first with `npm ci && npm run build` in frontend/.
 tasks.processResources {
+    // Copy doesn't remove files from earlier runs; without this, old hashed UI assets would pile up in the jar.
+    doFirst { delete(layout.buildDirectory.dir("resources/main/static")) }
     from(layout.projectDirectory.dir("../../frontend/dist")) { into("static") }
 }
 

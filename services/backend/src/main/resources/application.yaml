@@ -1,7 +1,13 @@
 server:
   # Behind an ingress/load balancer: honour X-Forwarded-* so OAuth redirect URIs use the public https host.
   forward-headers-strategy: framework
+app:
+  redis:
+    # true: HTTP sessions are stored in Redis. false: in-memory sessions, Redis not required.
+    enabled: ${REDIS_ENABLED:false}
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.session.data.redis.autoconfigure.SessionDataRedisAutoConfiguration
   application:
     name: backend
   config:
@@ -15,6 +21,11 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        # A deployment inserts one task per container; send them in a few round trips, not one per row.
+        jdbc.batch_size: 50
+        order_inserts: true
   modulith:
     events:
       republish-outstanding-events-on-restart: true
@@ -34,6 +45,9 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 management:
+  health:
+    redis:
+      enabled: ${REDIS_ENABLED:false}
   endpoints:
     web:
       exposure:
@@ -43,6 +57,17 @@ management:
       probes:
         enabled: true
       show-details: always
+      # 'redis' stays in the readiness group but doesn't exist when REDIS_ENABLED=false
+      validate-group-membership: false
       group:
         readiness:
           include: readinessState,db,redis
+
+nimbus:
+  deployments:
+    # Total times a deployment may be claimed. A stale lease re-queues it until this is reached, then it FAILS.
+    max-attempts: 3
+    # Fixed lease: a claimed deployment must finish within this. Heartbeats do not extend it.
+    lease-duration: 30m
+    # A claimed deployment with no heartbeat for this long is treated as abandoned.
+    heartbeat-timeout: 2m
