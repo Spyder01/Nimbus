@@ -6,9 +6,19 @@ const scalar = (v: string | number | boolean) =>
     ? JSON.stringify(v)
     : String(v)
 
-// A read-only YAML rendering of the canvas. Edges become `needs` (source needs target).
+// The YAML rendering of the canvas, used for the YAML view and Export. Edges become `needs` (source needs target).
+// The backend's AppYamlImporter reads exactly this format back: change them together.
 export function toYaml(appName: string, nodes: FlowNode[], edges: FlowEdge[]): string {
-  const names = new Map(nodes.map((n) => [n.id, n.data.name.trim() || n.id]))
+  // Services are keyed by name, and YAML can't repeat a key: containers sharing a name get -2, -3, ... so the file always imports.
+  const names = new Map<string, string>()
+  const used = new Set<string>()
+  for (const n of nodes) {
+    const base = n.data.name.trim() || n.id
+    let name = base
+    for (let i = 2; used.has(name); i++) name = `${base}-${i}`
+    used.add(name)
+    names.set(n.id, name)
+  }
   const lines: string[] = [`app: ${scalar(appName)}`]
   if (nodes.length === 0) return `${lines[0]}\nservices: {}\n`
   lines.push('services:')

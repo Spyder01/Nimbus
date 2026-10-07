@@ -4,6 +4,7 @@ import com.spyder01.nimbus.backend.apps.dto.AppDetail
 import com.spyder01.nimbus.backend.apps.dto.AppSummary
 import com.spyder01.nimbus.backend.apps.dto.CreateAppRequest
 import com.spyder01.nimbus.backend.apps.dto.DraftDto
+import com.spyder01.nimbus.backend.apps.dto.ImportAppRequest
 import com.spyder01.nimbus.backend.apps.dto.RenameAppRequest
 import com.spyder01.nimbus.backend.apps.dto.RestoreVersionRequest
 import com.spyder01.nimbus.backend.apps.dto.SaveDraftRequest
@@ -41,6 +42,12 @@ class AppController(
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@AuthenticationPrincipal user: OAuth2User, @RequestBody req: CreateAppRequest): AppDetail =
         service.create(user.userId(), req.name)
+
+    /** Creates an app from YAML (the format the canvas exports). 400 `invalid_yaml` lists problems with line numbers. */
+    @PostMapping("/import")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun import(@AuthenticationPrincipal user: OAuth2User, @RequestBody req: ImportAppRequest): AppDetail =
+        service.importApp(user.userId(), req.name, req.yaml)
 
     @GetMapping("/{id}")
     fun get(@AuthenticationPrincipal user: OAuth2User, @PathVariable id: UUID): AppDetail =

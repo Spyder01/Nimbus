@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Settings } from 'lucide-react'
 import { NavLink, Navigate, Outlet, useMatch } from 'react-router'
 import { Avatar } from '@/components/avatar'
 import { Logo } from '@/components/logo'
@@ -14,6 +14,8 @@ const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
+
+const ADMIN_NAV = [{ to: '/admin/workers', label: 'Workers', icon: Server }]
 
 const KEY = 'nimbus-nav-collapsed'
 
@@ -48,6 +50,7 @@ export function AppShell() {
   const onCanvas = !!useMatch('/apps/:id')
   if (loading) return <Splash />
   if (!me || !me.profileUpdated) return <Navigate to={homeFor(me)} replace />
+  const isAdmin = me.role === 'ADMIN'
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -84,6 +87,24 @@ export function AppShell() {
               <span className={collapsed ? 'sr-only' : undefined}>{label}</span>
             </NavLink>
           ))}
+          {isAdmin && (
+            <>
+              <div className={cn('text-muted-foreground mt-4 mb-1 px-3 text-[10px] font-medium tracking-widest uppercase', collapsed && 'sr-only')}>
+                Admin
+              </div>
+              {ADMIN_NAV.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  title={collapsed ? label : undefined}
+                  className={(s) => cn(linkClass(s), collapsed && 'justify-center px-0')}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span className={collapsed ? 'sr-only' : undefined}>{label}</span>
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="mt-auto space-y-2">
@@ -123,7 +144,7 @@ export function AppShell() {
           <ThemeToggle />
         </div>
         <nav className="flex gap-1 px-3 pb-2" aria-label="Main">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {[...NAV, ...(isAdmin ? ADMIN_NAV : [])].map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={linkClass}>
               <Icon className="size-4" />
               {label}

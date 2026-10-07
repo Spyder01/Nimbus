@@ -50,6 +50,14 @@ export function useCreateApp() {
   })
 }
 
+export function useImportApp() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { name: string; yaml: string }) => request<AppDetail>('/api/apps/import', { method: 'POST', json: v }),
+    onSuccess: () => qc.invalidateQueries(listOnly),
+  })
+}
+
 export function useRenameApp(id: string) {
   const qc = useQueryClient()
   return useMutation({

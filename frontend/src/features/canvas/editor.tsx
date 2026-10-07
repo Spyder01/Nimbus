@@ -16,7 +16,7 @@ import {
   type Connection,
   type NodeTypes,
 } from '@xyflow/react'
-import { AlertTriangle, ArrowLeft, Check, Copy, History, Loader2, Plus, Rocket, Save, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, Copy, Download, History, Loader2, Plus, Rocket, Save, X } from 'lucide-react'
 import { Link } from 'react-router'
 import { useTheme } from '@/components/theme-provider'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -25,6 +25,7 @@ import { appsKey, useCancelDeployment, useDeploy, useDeployments } from '@/featu
 import { StateBadge } from '@/features/apps/state-badge'
 import { isActive, type AppDetail, type ContainerData, type Deployment, type Draft, type Problem, type SaveVersionResult } from '@/features/apps/types'
 import { ApiError, request } from '@/lib/api'
+import { downloadText, slug } from '@/lib/download'
 import { cn } from '@/lib/utils'
 import { ContainerNode } from './container-node'
 import { defaultData, newId, TEMPLATES, toFlowEdges, toFlowNodes, uniqueName, type FlowEdge, type FlowNode, type Template } from './graph'
@@ -238,6 +239,9 @@ function Editor({ app }: { app: AppDetail }) {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <Button variant="outline" onClick={() => downloadText(`${slug(name)}.yaml`, toYaml(name, nodes, edges))} title="Export as YAML">
+            <Download /> <span className="hidden sm:inline">Export</span>
+          </Button>
           <Button variant={historyOpen ? 'secondary' : 'outline'} onClick={() => setHistoryOpen((o) => !o)} aria-pressed={historyOpen}>
             <History /> <span className="hidden sm:inline">History</span>
           </Button>

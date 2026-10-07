@@ -4,6 +4,9 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { SessionProvider } from '@/components/session-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AppShell } from '@/components/app-shell'
+import { RequireAdmin } from '@/components/require-admin'
+import AdminWorkers from '@/pages/admin/workers'
+import AdminWorkerDetail from '@/pages/admin/worker-detail'
 import Dashboard from '@/pages/dashboard'
 import Landing from '@/pages/landing'
 import Profile from '@/pages/profile'
@@ -29,6 +32,11 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/apps/:id" element={<Suspense fallback={<Splash />}><AppCanvas /></Suspense>} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/admin" element={<RequireAdmin />}>
+                <Route index element={<Navigate to="workers" replace />} />
+                <Route path="workers" element={<AdminWorkers />} />
+                <Route path="workers/:name" element={<AdminWorkerDetail />} />
+              </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

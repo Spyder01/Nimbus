@@ -8,6 +8,8 @@ import java.util.UUID
 
 data class CreateAppRequest(val name: String?)
 
+data class ImportAppRequest(val name: String?, val yaml: String?)
+
 data class RenameAppRequest(val name: String?)
 
 data class SaveDraftRequest(

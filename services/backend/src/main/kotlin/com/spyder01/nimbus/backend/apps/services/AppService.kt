@@ -3,6 +3,8 @@ package com.spyder01.nimbus.backend.apps.services
 import com.spyder01.nimbus.backend.apps.dto.AppDetail
 import com.spyder01.nimbus.backend.apps.dto.AppSummary
 import com.spyder01.nimbus.backend.apps.dto.DraftDto
+import com.spyder01.nimbus.backend.apps.dto.GraphEdge
+import com.spyder01.nimbus.backend.apps.dto.GraphNode
 import com.spyder01.nimbus.backend.apps.dto.SaveDraftRequest
 import com.spyder01.nimbus.backend.apps.dto.SaveVersionResult
 import com.spyder01.nimbus.backend.apps.dto.VersionDetail
@@ -28,6 +30,7 @@ class AppService(
     private val views: DeploymentViews,
     private val validator: GraphValidator,
     private val hasher: GraphHasher,
+    private val yamlImporter: AppYamlImporter,
 ) {
     companion object {
         const val MAX_APPS_PER_USER = 50
@@ -48,24 +51,34 @@ class AppService(
     }
 
     @Transactional
-    fun create(owner: UUID, rawName: String?): AppDetail {
+    fun create(owner: UUID, rawName: String?, nodes: List<GraphNode> = emptyList(), edges: List<GraphEdge> = emptyList()): AppDetail {
         val name = validName(rawName)
         if (apps.countByOwnerId(owner) >= MAX_APPS_PER_USER) {
             throw ApiException(HttpStatus.CONFLICT, "app_limit", "You can have up to $MAX_APPS_PER_USER apps")
         }
         if (apps.existsByOwnerIdAndNameIgnoreCase(owner, name)) throw nameTaken()
 
-        val app = apps.save(App(ownerId = owner, name = name))
+        val app = apps.save(App(ownerId = owner, name = name, componentCount = nodes.size))
         val draft = specs.save(
             AppSpec(
                 appId = requireNotNull(app.id),
                 kind = SpecKind.DRAFT,
                 revision = 0,
-                contentHash = hasher.hash(emptyList(), emptyList()),
+                nodes = nodes,
+                edges = edges,
+                contentHash = hasher.hash(nodes, edges),
                 createdBy = owner,
             ),
         )
         return detail(app, draft)
+    }
+
+    /** A new app whose draft is the graph described by [yaml] (see [AppYamlImporter] for the format). */
+    @Transactional
+    fun importApp(owner: UUID, rawName: String?, yaml: String?): AppDetail {
+        val parsed = yamlImporter.parse(yaml.orEmpty())
+        validator.requireWellFormed(parsed.nodes, parsed.edges)
+        return create(owner, rawName, parsed.nodes, parsed.edges)
     }
 
     @Transactional(readOnly = true)

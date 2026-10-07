@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Boxes, MoreHorizontal, Plus, Trash2, XCircle } from 'lucide-react'
+import { Boxes, MoreHorizontal, Plus, Trash2, Upload, XCircle } from 'lucide-react'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CreateAppDialog } from '@/features/apps/create-app-dialog'
 import { DeleteAppDialog } from '@/features/apps/delete-app-dialog'
+import { ImportAppDialog } from '@/features/apps/import-app-dialog'
 import { useApps, useCancelDeployment } from '@/features/apps/queries'
 import { StateBadge } from '@/features/apps/state-badge'
 import { isActive, type AppSummary } from '@/features/apps/types'
@@ -14,6 +15,7 @@ import { timeAgo } from '@/lib/time'
 export default function DashboardPage() {
   const apps = useApps()
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState<AppSummary | null>(null)
 
   return (
@@ -23,9 +25,14 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Apps</h1>
           <p className="text-muted-foreground mt-1 text-sm">Design an app on the canvas, then run it on Kubernetes.</p>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus /> Create app
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button variant="outline" onClick={() => setImporting(true)}>
+            <Upload /> Import YAML
+          </Button>
+          <Button onClick={() => setCreating(true)}>
+            <Plus /> Create app
+          </Button>
+        </div>
       </div>
 
       <div className="mt-8">
@@ -45,6 +52,7 @@ export default function DashboardPage() {
       </div>
 
       <CreateAppDialog open={creating} onOpenChange={setCreating} />
+      <ImportAppDialog open={importing} onOpenChange={setImporting} />
       <DeleteAppDialog app={deleting} onClose={() => setDeleting(null)} />
     </div>
   )

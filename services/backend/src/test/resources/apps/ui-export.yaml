@@ -1,0 +1,35 @@
+app: shop
+services:
+  web:
+    image: nginx:1.27
+    port: 80
+    expose: true
+    kind: stateless
+    replicas: 2
+    needs: [api]
+  api:
+    image: ghcr.io/acme/api:2.1
+    port: 8080
+    kind: stateless
+    replicas: 3
+    autoscale: { min: 2, max: 8, cpu: 70 }
+    env:
+      LOG_LEVEL: info
+      GREETING: "hello: world"
+      PORT: "8080"
+      EMPTY: ""
+    needs: [db, cache]
+  db:
+    image: postgres:16
+    port: 5432
+    kind: stateful
+    replicas: 1
+    volume: { size: 10Gi, mount: /var/lib/postgresql/data }
+    env:
+      POSTGRES_PASSWORD: "<secret>"
+  cache:
+    image: redis:7.2
+    port: 6379
+    kind: stateful
+    replicas: 1
+    volume: { size: 1Gi, mount: /data }

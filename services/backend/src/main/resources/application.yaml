@@ -71,3 +71,5 @@ nimbus:
     lease-duration: 30m
     # A claimed deployment with no heartbeat for this long is treated as abandoned.
     heartbeat-timeout: 2m
+    # How often abandoned tasks are taken back (a worker that went quiet for longer than heartbeat-timeout, or past its lease).
+    reclaim-interval: 30s

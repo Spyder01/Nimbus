@@ -3,6 +3,7 @@ package com.spyder01.nimbus.backend.apps
 import com.spyder01.nimbus.backend.users.entities.User
 import com.spyder01.nimbus.backend.users.repositories.UserRepository
 import jakarta.persistence.EntityManager
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -36,8 +37,16 @@ class AppsApiTest(
     @Autowired private val em: EntityManager,
     @Autowired private val json: JsonMapper,
 ) {
-    private val alice = users.saveAndFlush(User(name = "alice"))
-    private val bob = users.saveAndFlush(User(name = "bob"))
+    private lateinit var alice: User
+    private lateinit var bob: User
+
+    // Created in @BeforeEach, which runs inside the test's transaction, so these rows are rolled back with it.
+    // (As property initializers they ran before the transaction began and stayed in the database for good.)
+    @BeforeEach
+    fun createUsers() {
+        alice = users.saveAndFlush(User(name = "alice"))
+        bob = users.saveAndFlush(User(name = "bob"))
+    }
 
     private fun call(user: User, req: MockHttpServletRequestBuilder, body: Any? = null): ResultActions {
         em.flush()
