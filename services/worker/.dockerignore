@@ -1,0 +1,7 @@
+# Never bake local settings or secrets into the image.
+.env
+.env.*
+.git
+.gitignore
+Dockerfile
+.dockerignore
