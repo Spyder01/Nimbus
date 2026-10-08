@@ -50,10 +50,10 @@ function Pools({ workers }: { workers: Worker[] }) {
           <h2 id={`pool-${pool}`} className="text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase">
             Pool <span className="text-foreground font-mono normal-case">{pool}</span>
           </h2>
-          <div className="border-border bg-card overflow-x-auto rounded-2xl border">
+          <div className="card-surface overflow-x-auto rounded-2xl">
             <table className="w-full min-w-[50rem] text-sm">
               <thead>
-                <tr className="text-muted-foreground border-border border-b text-left text-xs">
+                <tr className="text-muted-foreground border-border bg-muted/40 border-b text-left text-xs">
                   <th className="px-4 py-3 font-medium">Worker</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Jobs</th>
@@ -108,7 +108,7 @@ function Pools({ workers }: { workers: Worker[] }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border bg-card rounded-xl border px-4 py-3">
+    <div className="card-surface rounded-xl px-4 py-3">
       <dt className="text-muted-foreground text-xs">{label}</dt>
       <dd className="mt-0.5 text-lg font-semibold tabular-nums">{value}</dd>
     </div>

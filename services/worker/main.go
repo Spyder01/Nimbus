@@ -21,6 +21,7 @@ import (
 	"nimbus/worker/internal/db"
 	"nimbus/worker/internal/jobs"
 	"nimbus/worker/internal/membership"
+	"nimbus/worker/internal/runner"
 )
 
 const (
@@ -216,18 +217,59 @@ func claimJob(ctx context.Context, pool *pgxpool.Pool, workerID string, held *sy
 	}
 }
 
-// holdJob keeps a claimed job's lease alive until the job ends. It renews the lease every heartbeatInterval and stops
-// when the deployment is cancelled (acknowledging that to the backend), when the lease is lost or runs out, or when the
-// worker shuts down. Running the job itself goes here later: it would run under jobCtx, which this cancels on a stop.
+// holdJob runs a claimed job and keeps its lease alive until it ends. The job runs under jobCtx while this renews the
+// lease every heartbeatInterval. It ends in one of these ways:
+//   - the job finishes: reported as completed, or failed with its error;
+//   - the deployment is cancelled: jobCtx is cancelled so the job stops, and that is acknowledged;
+//   - the lease is lost or runs out: the job is stopped and nothing is reported (it isn't ours any more);
+//   - the worker shuts down: the job is stopped and the lease is left for the backend to take back.
 func holdJob(ctx context.Context, pool *pgxpool.Pool, workerID string, job jobs.Job) {
 	log := slog.With("job_id", job.ID, "name", job.Name, "deployment_id", job.DeploymentID)
 	jobCtx, stopJob := context.WithDeadline(ctx, job.LeaseExpiresAt) // the lease can't be renewed past its fixed expiry
 	defer stopJob()
 
+	finished := make(chan error, 1)
+	go func() { finished <- runner.Run(jobCtx, job) }()
+	ran := false
+	defer func() {
+		if !ran { // make sure the job has really stopped before this returns
+			stopJob()
+			<-finished
+		}
+	}()
+
+	// Reports run on their own context: jobCtx may already be cancelled by the time we need to report.
+	report := func(f func(context.Context) (bool, error), what string) {
+		rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+		ok, err := f(rctx)
+		switch {
+		case err != nil:
+			log.Error("could not record that the job "+what+"; the backend will take it back", "error", err)
+		case !ok:
+			log.Warn("the job " + what + ", but it was no longer ours to report")
+		default:
+			log.Info("the job " + what)
+		}
+	}
+
 	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
 	for {
 		select {
+		case err := <-finished:
+			ran = true
+			switch {
+			case err == nil:
+				report(func(c context.Context) (bool, error) { return jobs.Complete(c, pool, job.ID, workerID) }, "finished")
+			case jobCtx.Err() != nil:
+				// It was stopped from outside (lease ran out, or shutdown): the job isn't ours to report on.
+				log.Warn("the job was stopped before it finished")
+			default:
+				log.Error("the job failed", "error", err)
+				report(func(c context.Context) (bool, error) { return jobs.Fail(c, pool, job.ID, workerID, err.Error()) }, "failed")
+			}
+			return
 		case <-jobCtx.Done():
 			if ctx.Err() == nil {
 				log.Warn("the job's lease ran out; no longer holding it")
@@ -246,19 +288,10 @@ func holdJob(ctx context.Context, pool *pgxpool.Pool, workerID string, job jobs.
 			log.Warn("the job is no longer ours (taken back or ended); stopping")
 			return
 		case beat.StopRequested:
-			stopJob() // whatever runs the job stops here
-			// The acknowledgement must go through even though the job's own context is now cancelled.
-			ackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-			ok, err := jobs.AcknowledgeStop(ackCtx, pool, job.ID, workerID)
-			cancel()
-			switch {
-			case err != nil:
-				log.Error("could not record that the job was stopped; the backend will take it back", "error", err)
-			case !ok:
-				log.Warn("the job was stopped, but it was no longer ours to report")
-			default:
-				log.Info("the deployment was cancelled: the job was stopped")
-			}
+			stopJob() // the job stops here
+			<-finished
+			ran = true
+			report(func(c context.Context) (bool, error) { return jobs.AcknowledgeStop(c, pool, job.ID, workerID) }, "was stopped because the deployment was cancelled")
 			return
 		}
 	}

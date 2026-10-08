@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import type { ContainerData, EnvVar, Problem } from '@/features/apps/types'
+import { applyEntry } from '@/features/images/catalog'
+import { ImagePicker } from '@/features/images/image-picker'
 import { cn } from '@/lib/utils'
 import type { FlowNode } from './graph'
 
@@ -60,7 +62,13 @@ export function Inspector({ node, problems, onChange, onDelete, onClose }: Props
         </Field>
 
         <Field label="Image" id="c-image" errors={msgs('image')}>
-          <Input id="c-image" value={d.image} onChange={(e) => onChange({ image: e.target.value })} placeholder="ghcr.io/acme/api:2.1" className="font-mono" aria-invalid={msgs('image').length > 0} />
+          <ImagePicker
+            id="c-image"
+            value={d.image}
+            invalid={msgs('image').length > 0}
+            onChange={(image) => onChange({ image })}
+            onPick={(entry, tag) => onChange(applyEntry(d, entry, tag))}
+          />
         </Field>
 
         <div className="space-y-2">
@@ -216,6 +224,13 @@ function NumField({ id, value, onChange, nullable = false, min, max, placeholder
   placeholder?: string
 }) {
   const [text, setText] = useState(value == null ? '' : String(value))
+  // The value can also change from outside (picking an image fills in its port): follow it, but leave what the user
+  // is typing alone while it still means the same number.
+  const [seen, setSeen] = useState(value)
+  if (value !== seen) {
+    setSeen(value)
+    if (value == null ? text !== '' : Number(text) !== value || text === '') setText(value == null ? '' : String(value))
+  }
   return (
     <Input
       id={id}

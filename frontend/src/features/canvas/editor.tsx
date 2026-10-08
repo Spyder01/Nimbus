@@ -20,7 +20,9 @@ import { AlertTriangle, ArrowLeft, Check, Copy, Download, History, Loader2, Plus
 import { Link } from 'react-router'
 import { useTheme } from '@/components/theme-provider'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { templateFromEntry } from '@/features/images/catalog'
+import { ImageBrowser } from '@/features/images/image-browser'
 import { appsKey, useCancelDeployment, useDeploy, useDeployments } from '@/features/apps/queries'
 import { StateBadge } from '@/features/apps/state-badge'
 import { isActive, type AppDetail, type ContainerData, type Deployment, type Draft, type Problem, type SaveVersionResult } from '@/features/apps/types'
@@ -59,6 +61,7 @@ function Editor({ app }: { app: AppDetail }) {
   const [name, setName] = useState(app.name)
   const [view, setView] = useState<'diagram' | 'yaml'>('diagram')
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [browsing, setBrowsing] = useState(false)
   const [saveOpen, setSaveOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -236,6 +239,11 @@ function Editor({ app }: { app: AppDetail }) {
                   <span className="text-muted-foreground text-xs">{t.hint}</span>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setBrowsing(true)} className="flex-col items-start gap-0">
+                <span>Browse images…</span>
+                <span className="text-muted-foreground text-xs">Search the catalog</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -255,8 +263,8 @@ function Editor({ app }: { app: AppDetail }) {
       </div>
 
       {autosave.status === 'conflict' && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm">
-          <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+        <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-warn/40 bg-warn/10 px-4 py-2 text-sm">
+          <AlertTriangle className="size-4 text-warn" />
           <span className="flex-1">This app was changed somewhere else (another tab or window). Your edits here aren't saved.</span>
           <Button size="sm" variant="outline" onClick={() => void reloadLatest()}>Load latest</Button>
         </div>
@@ -327,7 +335,9 @@ function Editor({ app }: { app: AppDetail }) {
 
           {active && <DeploymentOverlay deployment={active} cancelling={cancel.isPending} onCancel={() => cancel.mutate(active.id)} />}
 
-          {nodes.length === 0 && view === 'diagram' && !locked && <EmptyHint onPick={addContainer} />}
+          {nodes.length === 0 && view === 'diagram' && !locked && <EmptyHint onPick={addContainer} onBrowse={() => setBrowsing(true)} />}
+
+          <ImageBrowser open={browsing} onOpenChange={setBrowsing} onSelect={(entry, tag) => addContainer(templateFromEntry(entry, tag))} />
 
           {view === 'yaml' && (
             <div className="bg-background absolute inset-0 z-10 overflow-auto">
@@ -406,7 +416,7 @@ function SaveIndicator({ status, error, notice, onRetry }: { status: SaveStatus;
         </span>
       )
     case 'conflict':
-      return <span className="text-xs text-amber-600 dark:text-amber-400">Out of date</span>
+      return <span className="text-xs text-warn">Out of date</span>
     default:
       return (
         <span role="status" className="text-muted-foreground flex items-center gap-1 text-xs">
@@ -416,7 +426,7 @@ function SaveIndicator({ status, error, notice, onRetry }: { status: SaveStatus;
   }
 }
 
-function EmptyHint({ onPick }: { onPick: (t: Template) => void }) {
+function EmptyHint({ onPick, onBrowse }: { onPick: (t: Template) => void; onBrowse: () => void }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-[5] grid place-items-center p-4">
       <div className="border-border bg-card pointer-events-auto w-full max-w-sm rounded-2xl border p-6 text-center shadow-lg">
@@ -430,6 +440,9 @@ function EmptyHint({ onPick }: { onPick: (t: Template) => void }) {
             </Button>
           ))}
         </div>
+        <Button variant="ghost" className="mt-2 w-full" onClick={onBrowse}>
+          Browse all images…
+        </Button>
       </div>
     </div>
   )
