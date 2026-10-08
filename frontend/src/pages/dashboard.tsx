@@ -23,7 +23,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Apps</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Design an app on the canvas, then run it on Kubernetes.</p>
+          <p className="text-muted-foreground mt-1.5 text-sm">Design an app on the canvas, then run it on Kubernetes.</p>
         </div>
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" onClick={() => setImporting(true)}>
@@ -62,9 +62,9 @@ function AppCard({ app, onDelete }: { app: AppSummary; onDelete: () => void }) {
   const cancel = useCancelDeployment(app.id)
   const active = isActive(app.activeDeployment) ? app.activeDeployment : null
   return (
-    <li className="border-border bg-card hover:border-brand-to/40 group relative overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+    <li className="card-surface hover:border-ring/50 group relative overflow-hidden rounded-2xl p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-pop)]">
       <div className="flex items-start justify-between gap-2">
-        <span className="bg-brand-gradient grid size-9 place-items-center rounded-lg text-white">
+        <span className="bg-muted text-muted-foreground group-hover:text-foreground border-border grid size-9 place-items-center rounded-lg border transition-colors">
           <Boxes className="size-[18px]" />
         </span>
         <DropdownMenu>
@@ -87,7 +87,7 @@ function AppCard({ app, onDelete }: { app: AppSummary; onDelete: () => void }) {
       </div>
 
       {/* stretched link: the whole card opens the app, the menu above stays clickable */}
-      <h2 className="mt-4 truncate font-medium">
+      <h2 className="mt-4 truncate font-medium tracking-tight">
         <Link to={`/apps/${app.id}`} className="after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none">
           {app.name}
         </Link>

@@ -6,10 +6,7 @@ export function StatusBadge({ status }: { status: WorkerStatus }) {
   const online = status === 'ONLINE'
   return (
     <span
-      className={cn(
-        'border-border inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium',
-        online ? 'text-ok' : 'text-muted-foreground',
-      )}
+      className={cn('pill', online ? 'text-ok' : 'text-muted-foreground')}
     >
       <span className={cn('size-1.5 rounded-full', online ? 'bg-ok live-dot' : 'bg-muted-foreground/60')} />
       {online ? 'Online' : 'Offline'}

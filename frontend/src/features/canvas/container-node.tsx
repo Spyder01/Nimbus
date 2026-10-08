@@ -14,29 +14,34 @@ export function ContainerNode({ id, data, selected }: NodeProps<FlowNode>) {
   return (
     <div
       className={cn(
-        'bg-card border-border w-56 rounded-xl border shadow-sm transition-shadow',
-        selected && 'ring-brand-to/60 shadow-md ring-2',
-        problems > 0 && !selected && 'border-amber-500/60',
+        'card-surface w-56 rounded-xl transition-shadow hover:shadow-[var(--shadow-pop)]',
+        selected && 'ring-info/60 ring-2',
+        problems > 0 && !selected && 'border-warn/60',
       )}
     >
-      <Handle type="target" position={Position.Left} className="!bg-brand-to !border-background !size-3 !border-2" />
+      <Handle type="target" position={Position.Left} className="!bg-info !border-background !size-3 !border-2" />
 
       <div className="flex items-center gap-2.5 p-3">
-        <span className="bg-brand-gradient grid size-8 shrink-0 place-items-center rounded-lg text-white">
+        <span
+          className={cn(
+            'grid size-8 shrink-0 place-items-center rounded-lg',
+            stateful ? 'bg-violet-500/12 text-violet-500 dark:text-violet-300' : 'bg-info/12 text-info',
+          )}
+        >
           <Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <div className={cn('truncate text-sm font-medium', !data.name && 'text-muted-foreground italic')}>
             {data.name || 'Unnamed'}
           </div>
-          <div className={cn('truncate font-mono text-[11px]', data.image ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400')}>
+          <div className={cn('truncate font-mono text-[11px]', data.image ? 'text-muted-foreground' : 'text-warn')}>
             {data.image || 'No image yet'}
           </div>
         </div>
         {problems > 0 && (
           <span
             title={`${problems} thing${problems === 1 ? '' : 's'} to fix`}
-            className="flex items-center gap-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+            className="flex items-center gap-0.5 text-xs font-medium text-warn"
           >
             <AlertTriangle className="size-3.5" />
             {problems}
@@ -63,7 +68,7 @@ export function ContainerNode({ id, data, selected }: NodeProps<FlowNode>) {
         )}
       </div>
 
-      <Handle type="source" position={Position.Right} className="!bg-brand-to !border-background !size-3 !border-2" />
+      <Handle type="source" position={Position.Right} className="!bg-info !border-background !size-3 !border-2" />
     </div>
   )
 }

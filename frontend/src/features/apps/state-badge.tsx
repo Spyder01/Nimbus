@@ -4,9 +4,9 @@ import { isActive, type AppState, type Deployment, type DeploymentState } from '
 
 const STYLES: Record<AppState, { label: string; dot: string; text: string; pulse?: boolean }> = {
   DRAFT: { label: 'Draft', dot: 'bg-muted-foreground/60', text: 'text-muted-foreground' },
-  DEPLOYING: { label: 'Deploying', dot: 'bg-brand-to', text: 'text-brand-to dark:text-brand-from', pulse: true },
+  DEPLOYING: { label: 'Deploying', dot: 'bg-info', text: 'text-info', pulse: true },
   RUNNING: { label: 'Running', dot: 'bg-ok', text: 'text-ok' },
-  DEGRADED: { label: 'Degraded', dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+  DEGRADED: { label: 'Degraded', dot: 'bg-warn', text: 'text-warn' },
   FAILED: { label: 'Failed', dot: 'bg-destructive', text: 'text-destructive' },
   STOPPED: { label: 'Stopped', dot: 'bg-muted-foreground/60', text: 'text-muted-foreground' },
   DELETING: { label: 'Deleting', dot: 'bg-destructive', text: 'text-destructive', pulse: true },
@@ -25,11 +25,7 @@ export function StateBadge({ state, deployment, className }: { state: AppState; 
   const busy = isActive(deployment)
   return (
     <span
-      className={cn(
-        'border-border inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium',
-        busy ? STYLES.DEPLOYING.text : s.text,
-        className,
-      )}
+      className={cn('pill', busy ? STYLES.DEPLOYING.text : s.text, className)}
     >
       {busy ? <Loader2 className="size-3 animate-spin" /> : <span className={cn('size-1.5 rounded-full', s.dot, s.pulse && 'live-dot')} />}
       {busy ? activeLabel(deployment) : s.label}
@@ -39,7 +35,7 @@ export function StateBadge({ state, deployment, className }: { state: AppState; 
 
 const DEPLOYMENT: Record<DeploymentState, { label: string; text: string }> = {
   QUEUED: { label: 'Queued', text: 'text-muted-foreground' },
-  IN_PROGRESS: { label: 'In progress', text: 'text-brand-to dark:text-brand-from' },
+  IN_PROGRESS: { label: 'In progress', text: 'text-info' },
   SUCCEEDED: { label: 'Succeeded', text: 'text-ok' },
   FAILED: { label: 'Failed', text: 'text-destructive' },
   CANCELLED: { label: 'Cancelled', text: 'text-muted-foreground' },

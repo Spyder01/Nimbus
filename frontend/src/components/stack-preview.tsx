@@ -157,7 +157,12 @@ export function StackPreview() {
                   )}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="bg-brand-gradient grid size-5 shrink-0 place-items-center rounded-md text-white sm:size-7 sm:rounded-lg">
+                    <span
+                      className={cn(
+                        'grid size-5 shrink-0 place-items-center rounded-md sm:size-7 sm:rounded-lg',
+                        n.id === 'postgres' || n.id === 'redis' ? 'bg-violet-500/12 text-violet-500 dark:text-violet-300' : 'bg-info/12 text-info',
+                      )}
+                    >
                       <Icon className="size-3 sm:size-4" />
                     </span>
                     <span className="truncate text-xs font-medium sm:text-sm">{n.label}</span>

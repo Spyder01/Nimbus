@@ -61,7 +61,7 @@ function Details({ worker: w }: { worker: Worker }) {
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="border-border bg-card rounded-2xl border p-6">
+        <section className="card-surface rounded-2xl p-6">
           <h2 className="font-medium">Details</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <Row label="Running jobs" value={`${w.heldJobs}${s.effective.parallelJobs != null ? ` of ${s.effective.parallelJobs}` : ''}`} />
@@ -77,7 +77,7 @@ function Details({ worker: w }: { worker: Worker }) {
           </p>
         </section>
 
-        <section className="border-border bg-card rounded-2xl border p-6">
+        <section className="card-surface rounded-2xl p-6">
           <div className="flex items-start justify-between gap-3">
             <h2 className="font-medium">Settings</h2>
             <SyncBadge settings={s} offline={w.status === 'OFFLINE'} />

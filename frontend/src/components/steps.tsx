@@ -155,8 +155,9 @@ const STEPS = [
 
 export function Steps() {
   return (
-    <section>
+    <section id="how-it-works" className="scroll-mt-24">
       <Reveal>
+        <p className="text-info mb-4 text-xs font-medium tracking-widest uppercase">How it works</p>
         <h2 className="text-4xl font-light tracking-tight sm:text-6xl">Click, click, done.</h2>
       </Reveal>
       <div className="mt-12 grid gap-12 lg:mt-16 lg:grid-cols-3 lg:gap-10">

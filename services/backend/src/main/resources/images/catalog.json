@@ -1,0 +1,2137 @@
+{
+ "categories": [
+  "Web & proxies",
+  "Databases",
+  "Caches",
+  "Messaging",
+  "Search & vectors",
+  "Observability",
+  "Developer tools",
+  "Security",
+  "Apps & CMS",
+  "AI & data science",
+  "Demo & testing"
+ ],
+ "images": [
+  {
+   "id": "nginx",
+   "image": "nginx",
+   "name": "NGINX",
+   "category": "Web & proxies",
+   "description": "High-performance web server and reverse proxy.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "1.27",
+    "1.27-alpine",
+    "1.26",
+    "stable",
+    "mainline"
+   ],
+   "defaultTag": "1.27",
+   "base": "nginx",
+   "keywords": [
+    "http",
+    "server",
+    "proxy",
+    "web"
+   ],
+   "popular": true
+  },
+  {
+   "id": "httpd",
+   "image": "httpd",
+   "name": "Apache HTTP Server",
+   "category": "Web & proxies",
+   "description": "The Apache web server.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "2.4",
+    "2.4-alpine"
+   ],
+   "defaultTag": "2.4",
+   "base": "apache-http-server",
+   "keywords": [
+    "apache",
+    "http",
+    "server",
+    "web"
+   ]
+  },
+  {
+   "id": "caddy",
+   "image": "caddy",
+   "name": "Caddy",
+   "category": "Web & proxies",
+   "description": "Web server with automatic HTTPS and a simple default page.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "2",
+    "2-alpine"
+   ],
+   "defaultTag": "2",
+   "base": "caddy",
+   "keywords": [
+    "http",
+    "https",
+    "server",
+    "proxy"
+   ]
+  },
+  {
+   "id": "traefik",
+   "image": "traefik",
+   "name": "Traefik",
+   "category": "Web & proxies",
+   "description": "Cloud-native reverse proxy and load balancer.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "v3.1",
+    "v3.0",
+    "v2.11"
+   ],
+   "defaultTag": "v3.1",
+   "base": "traefik",
+   "keywords": [
+    "proxy",
+    "ingress",
+    "load balancer",
+    "gateway"
+   ]
+  },
+  {
+   "id": "kong",
+   "image": "kong",
+   "name": "Kong Gateway",
+   "category": "Web & proxies",
+   "description": "API gateway. Runs without a database (DB-less mode).",
+   "port": 8000,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "3.8",
+    "3.7",
+    "3.6"
+   ],
+   "defaultTag": "3.8",
+   "base": "kong-gateway",
+   "keywords": [
+    "api",
+    "gateway",
+    "proxy"
+   ],
+   "env": [
+    {
+     "key": "KONG_DATABASE",
+     "value": "off"
+    }
+   ]
+  },
+  {
+   "id": "tomcat",
+   "image": "tomcat",
+   "name": "Apache Tomcat",
+   "category": "Web & proxies",
+   "description": "Java servlet container for WAR applications.",
+   "port": 8080,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "10.1",
+    "9.0",
+    "10.1-jdk21",
+    "9.0-jdk17"
+   ],
+   "defaultTag": "10.1",
+   "base": "apache-tomcat",
+   "keywords": [
+    "java",
+    "servlet",
+    "jsp",
+    "war"
+   ]
+  },
+  {
+   "id": "php",
+   "image": "php",
+   "name": "PHP with Apache",
+   "category": "Web & proxies",
+   "description": "PHP served by Apache from /var/www/html.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "8.3-apache",
+    "8.2-apache",
+    "8.1-apache"
+   ],
+   "defaultTag": "8.3-apache",
+   "base": "php-with-apache",
+   "keywords": [
+    "php",
+    "apache",
+    "web"
+   ]
+  },
+  {
+   "id": "postgres",
+   "image": "postgres",
+   "name": "PostgreSQL",
+   "category": "Databases",
+   "description": "The world's most advanced open source relational database.",
+   "port": 5432,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "17",
+    "16",
+    "15",
+    "14",
+    "17-alpine",
+    "16-alpine"
+   ],
+   "defaultTag": "17",
+   "base": "postgresql",
+   "keywords": [
+    "sql",
+    "relational",
+    "postgresql",
+    "pg"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/postgresql/data",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "POSTGRES_PASSWORD",
+     "secret": true
+    },
+    {
+     "key": "PGDATA",
+     "value": "/var/lib/postgresql/data/pgdata"
+    }
+   ],
+   "popular": true
+  },
+  {
+   "id": "mysql",
+   "image": "mysql",
+   "name": "MySQL",
+   "category": "Databases",
+   "description": "Popular open source relational database.",
+   "port": 3306,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "8.4",
+    "8.0",
+    "5.7"
+   ],
+   "defaultTag": "8.4",
+   "base": "mysql",
+   "keywords": [
+    "sql",
+    "relational"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/mysql",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "MYSQL_ROOT_PASSWORD",
+     "secret": true
+    }
+   ],
+   "popular": true
+  },
+  {
+   "id": "mariadb",
+   "image": "mariadb",
+   "name": "MariaDB",
+   "category": "Databases",
+   "description": "Community-developed fork of MySQL.",
+   "port": 3306,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "11.4",
+    "10.11",
+    "10.6"
+   ],
+   "defaultTag": "11.4",
+   "base": "mariadb",
+   "keywords": [
+    "sql",
+    "relational",
+    "mysql"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/mysql",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "MARIADB_ROOT_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "mongo",
+   "image": "mongo",
+   "name": "MongoDB",
+   "category": "Databases",
+   "description": "Document database.",
+   "port": 27017,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "7.0",
+    "6.0",
+    "8.0"
+   ],
+   "defaultTag": "7.0",
+   "base": "mongodb",
+   "keywords": [
+    "nosql",
+    "document",
+    "json"
+   ],
+   "volume": {
+    "mountPath": "/data/db",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "MONGO_INITDB_ROOT_USERNAME",
+     "value": "root"
+    },
+    {
+     "key": "MONGO_INITDB_ROOT_PASSWORD",
+     "secret": true
+    }
+   ],
+   "popular": true
+  },
+  {
+   "id": "server",
+   "image": "mcr.microsoft.com/mssql/server",
+   "name": "Microsoft SQL Server",
+   "category": "Databases",
+   "description": "SQL Server for Linux (Developer edition by default).",
+   "port": 1433,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "2022-latest",
+    "2019-latest"
+   ],
+   "defaultTag": "2022-latest",
+   "base": "microsoft-sql-server",
+   "keywords": [
+    "sql",
+    "mssql",
+    "microsoft"
+   ],
+   "volume": {
+    "mountPath": "/var/opt/mssql",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "ACCEPT_EULA",
+     "value": "Y"
+    },
+    {
+     "key": "MSSQL_SA_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "cassandra",
+   "image": "cassandra",
+   "name": "Apache Cassandra",
+   "category": "Databases",
+   "description": "Distributed wide-column NoSQL database.",
+   "port": 9042,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "5.0",
+    "4.1",
+    "4.0"
+   ],
+   "defaultTag": "5.0",
+   "base": "apache-cassandra",
+   "keywords": [
+    "nosql",
+    "wide column"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/cassandra",
+    "size": "20Gi"
+   }
+  },
+  {
+   "id": "couchdb",
+   "image": "couchdb",
+   "name": "Apache CouchDB",
+   "category": "Databases",
+   "description": "Document database with an HTTP API.",
+   "port": 5984,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "3.4",
+    "3.3"
+   ],
+   "defaultTag": "3.4",
+   "base": "apache-couchdb",
+   "keywords": [
+    "nosql",
+    "document",
+    "json"
+   ],
+   "volume": {
+    "mountPath": "/opt/couchdb/data",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "COUCHDB_USER",
+     "value": "admin"
+    },
+    {
+     "key": "COUCHDB_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "arangodb",
+   "image": "arangodb",
+   "name": "ArangoDB",
+   "category": "Databases",
+   "description": "Multi-model database: documents, graphs and key/value.",
+   "port": 8529,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "3.12",
+    "3.11"
+   ],
+   "defaultTag": "3.12",
+   "base": "arangodb",
+   "keywords": [
+    "graph",
+    "document",
+    "nosql"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/arangodb3",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "ARANGO_ROOT_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "neo4j",
+   "image": "neo4j",
+   "name": "Neo4j",
+   "category": "Databases",
+   "description": "Graph database. Set NEO4J_AUTH to neo4j/<password>.",
+   "port": 7474,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "5",
+    "4.4"
+   ],
+   "defaultTag": "5",
+   "base": "neo4j",
+   "keywords": [
+    "graph",
+    "cypher"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "NEO4J_AUTH",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "rethinkdb",
+   "image": "rethinkdb",
+   "name": "RethinkDB",
+   "category": "Databases",
+   "description": "Realtime JSON database.",
+   "port": 8080,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "2.4"
+   ],
+   "defaultTag": "2.4",
+   "base": "rethinkdb",
+   "keywords": [
+    "nosql",
+    "realtime"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "clickhouse-server",
+   "image": "clickhouse/clickhouse-server",
+   "name": "ClickHouse",
+   "category": "Databases",
+   "description": "Column-oriented database for analytics. HTTP interface on 8123.",
+   "port": 8123,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "24.8",
+    "24.3",
+    "23.8"
+   ],
+   "defaultTag": "24.8",
+   "base": "clickhouse",
+   "keywords": [
+    "analytics",
+    "olap",
+    "columnar"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/clickhouse",
+    "size": "20Gi"
+   },
+   "env": [
+    {
+     "key": "CLICKHOUSE_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "influxdb",
+   "image": "influxdb",
+   "name": "InfluxDB",
+   "category": "Databases",
+   "description": "Time series database. Starts in setup mode with the values below.",
+   "port": 8086,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "2.7",
+    "2.6"
+   ],
+   "defaultTag": "2.7",
+   "base": "influxdb",
+   "keywords": [
+    "time series",
+    "metrics"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/influxdb2",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "DOCKER_INFLUXDB_INIT_MODE",
+     "value": "setup"
+    },
+    {
+     "key": "DOCKER_INFLUXDB_INIT_USERNAME",
+     "value": "admin"
+    },
+    {
+     "key": "DOCKER_INFLUXDB_INIT_PASSWORD",
+     "secret": true
+    },
+    {
+     "key": "DOCKER_INFLUXDB_INIT_ORG",
+     "value": "my-org"
+    },
+    {
+     "key": "DOCKER_INFLUXDB_INIT_BUCKET",
+     "value": "my-bucket"
+    }
+   ]
+  },
+  {
+   "id": "timescaledb",
+   "image": "timescale/timescaledb",
+   "name": "TimescaleDB",
+   "category": "Databases",
+   "description": "PostgreSQL extended for time series.",
+   "port": 5432,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest-pg16",
+    "latest-pg15"
+   ],
+   "defaultTag": "latest-pg16",
+   "base": "timescaledb",
+   "keywords": [
+    "time series",
+    "postgres",
+    "sql"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/postgresql/data",
+    "size": "20Gi"
+   },
+   "env": [
+    {
+     "key": "POSTGRES_PASSWORD",
+     "secret": true
+    },
+    {
+     "key": "PGDATA",
+     "value": "/var/lib/postgresql/data/pgdata"
+    }
+   ]
+  },
+  {
+   "id": "pgvector",
+   "image": "pgvector/pgvector",
+   "name": "pgvector",
+   "category": "Databases",
+   "description": "PostgreSQL with the pgvector extension for embeddings.",
+   "port": 5432,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "pg16",
+    "pg17",
+    "pg15"
+   ],
+   "defaultTag": "pg16",
+   "base": "pgvector",
+   "keywords": [
+    "postgres",
+    "vector",
+    "embeddings",
+    "ai"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/postgresql/data",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "POSTGRES_PASSWORD",
+     "secret": true
+    },
+    {
+     "key": "PGDATA",
+     "value": "/var/lib/postgresql/data/pgdata"
+    }
+   ]
+  },
+  {
+   "id": "postgis",
+   "image": "postgis/postgis",
+   "name": "PostGIS",
+   "category": "Databases",
+   "description": "PostgreSQL with geospatial extensions.",
+   "port": 5432,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "16-3.4",
+    "15-3.4"
+   ],
+   "defaultTag": "16-3.4",
+   "base": "postgis",
+   "keywords": [
+    "postgres",
+    "gis",
+    "geo",
+    "spatial"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/postgresql/data",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "POSTGRES_PASSWORD",
+     "secret": true
+    },
+    {
+     "key": "PGDATA",
+     "value": "/var/lib/postgresql/data/pgdata"
+    }
+   ]
+  },
+  {
+   "id": "questdb",
+   "image": "questdb/questdb",
+   "name": "QuestDB",
+   "category": "Databases",
+   "description": "Fast SQL database for time series. Web console on 9000.",
+   "port": 9000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "questdb",
+   "keywords": [
+    "time series",
+    "sql"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/questdb",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "redis",
+   "image": "redis",
+   "name": "Redis",
+   "category": "Caches",
+   "description": "In-memory data store, cache and message broker.",
+   "port": 6379,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "7.2",
+    "7.4",
+    "6.2",
+    "7.2-alpine"
+   ],
+   "defaultTag": "7.2",
+   "base": "redis",
+   "keywords": [
+    "cache",
+    "key value",
+    "kv"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "1Gi"
+   },
+   "popular": true
+  },
+  {
+   "id": "valkey",
+   "image": "valkey/valkey",
+   "name": "Valkey",
+   "category": "Caches",
+   "description": "Open source, Redis-compatible in-memory store.",
+   "port": 6379,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "8",
+    "7.2",
+    "8-alpine"
+   ],
+   "defaultTag": "8",
+   "base": "valkey",
+   "keywords": [
+    "cache",
+    "key value",
+    "redis"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "memcached",
+   "image": "memcached",
+   "name": "Memcached",
+   "category": "Caches",
+   "description": "Distributed memory object cache.",
+   "port": 11211,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "1.6",
+    "1.6-alpine"
+   ],
+   "defaultTag": "1.6",
+   "base": "memcached",
+   "keywords": [
+    "cache"
+   ]
+  },
+  {
+   "id": "rabbitmq",
+   "image": "rabbitmq",
+   "name": "RabbitMQ",
+   "category": "Messaging",
+   "description": "Message broker (AMQP). Use a -management tag for the web UI on 15672.",
+   "port": 5672,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "4.0",
+    "4.0-management",
+    "3.13",
+    "3.13-management"
+   ],
+   "defaultTag": "4.0",
+   "base": "rabbitmq",
+   "keywords": [
+    "queue",
+    "amqp",
+    "broker"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/rabbitmq",
+    "size": "5Gi"
+   },
+   "env": [
+    {
+     "key": "RABBITMQ_DEFAULT_USER",
+     "value": "guest"
+    },
+    {
+     "key": "RABBITMQ_DEFAULT_PASS",
+     "secret": true
+    }
+   ],
+   "popular": true
+  },
+  {
+   "id": "kafka",
+   "image": "apache/kafka",
+   "name": "Apache Kafka",
+   "category": "Messaging",
+   "description": "Event streaming platform (single node, KRaft mode).",
+   "port": 9092,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "3.8.0",
+    "3.7.1"
+   ],
+   "defaultTag": "3.8.0",
+   "base": "apache-kafka",
+   "keywords": [
+    "streaming",
+    "events",
+    "broker"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/kafka/data",
+    "size": "20Gi"
+   }
+  },
+  {
+   "id": "nats",
+   "image": "nats",
+   "name": "NATS",
+   "category": "Messaging",
+   "description": "Lightweight, high-performance messaging.",
+   "port": 4222,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "2.10",
+    "2.10-alpine"
+   ],
+   "defaultTag": "2.10",
+   "base": "nats",
+   "keywords": [
+    "messaging",
+    "pubsub",
+    "queue"
+   ]
+  },
+  {
+   "id": "emqx",
+   "image": "emqx/emqx",
+   "name": "EMQX",
+   "category": "Messaging",
+   "description": "Scalable MQTT broker. Dashboard on 18083.",
+   "port": 1883,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "5.7.2",
+    "5.7.1"
+   ],
+   "defaultTag": "5.7.2",
+   "base": "emqx",
+   "keywords": [
+    "mqtt",
+    "iot",
+    "broker"
+   ],
+   "volume": {
+    "mountPath": "/opt/emqx/data",
+    "size": "5Gi"
+   }
+  },
+  {
+   "id": "elasticsearch",
+   "image": "docker.elastic.co/elasticsearch/elasticsearch",
+   "name": "Elasticsearch",
+   "category": "Search & vectors",
+   "description": "Search and analytics engine. Runs as a single node here.",
+   "port": 9200,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "8.15.0",
+    "8.14.0",
+    "7.17.0"
+   ],
+   "defaultTag": "8.15.0",
+   "base": "elasticsearch",
+   "keywords": [
+    "search",
+    "lucene",
+    "elk"
+   ],
+   "volume": {
+    "mountPath": "/usr/share/elasticsearch/data",
+    "size": "20Gi"
+   },
+   "env": [
+    {
+     "key": "discovery.type",
+     "value": "single-node"
+    },
+    {
+     "key": "ELASTIC_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "kibana",
+   "image": "docker.elastic.co/kibana/kibana",
+   "name": "Kibana",
+   "category": "Search & vectors",
+   "description": "Dashboards for Elasticsearch. Set ELASTICSEARCH_HOSTS to your cluster.",
+   "port": 5601,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "8.15.0",
+    "8.14.0",
+    "7.17.0"
+   ],
+   "defaultTag": "8.15.0",
+   "base": "kibana",
+   "keywords": [
+    "elk",
+    "dashboard",
+    "search"
+   ],
+   "env": [
+    {
+     "key": "ELASTICSEARCH_HOSTS",
+     "value": "http://elasticsearch:9200"
+    }
+   ]
+  },
+  {
+   "id": "opensearch",
+   "image": "opensearchproject/opensearch",
+   "name": "OpenSearch",
+   "category": "Search & vectors",
+   "description": "Search and analytics suite. Runs as a single node here.",
+   "port": 9200,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "2",
+    "1"
+   ],
+   "defaultTag": "2",
+   "base": "opensearch",
+   "keywords": [
+    "search",
+    "lucene",
+    "elasticsearch"
+   ],
+   "volume": {
+    "mountPath": "/usr/share/opensearch/data",
+    "size": "20Gi"
+   },
+   "env": [
+    {
+     "key": "discovery.type",
+     "value": "single-node"
+    },
+    {
+     "key": "OPENSEARCH_INITIAL_ADMIN_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "opensearch-dashboards",
+   "image": "opensearchproject/opensearch-dashboards",
+   "name": "OpenSearch Dashboards",
+   "category": "Search & vectors",
+   "description": "Dashboards for OpenSearch. Set OPENSEARCH_HOSTS.",
+   "port": 5601,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "2",
+    "1"
+   ],
+   "defaultTag": "2",
+   "base": "opensearch-dashboards",
+   "keywords": [
+    "dashboard",
+    "search"
+   ],
+   "env": [
+    {
+     "key": "OPENSEARCH_HOSTS",
+     "value": "[\"https://opensearch:9200\"]"
+    }
+   ]
+  },
+  {
+   "id": "meilisearch",
+   "image": "getmeili/meilisearch",
+   "name": "Meilisearch",
+   "category": "Search & vectors",
+   "description": "Fast, typo-tolerant search engine.",
+   "port": 7700,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "v1.10",
+    "v1.9"
+   ],
+   "defaultTag": "v1.10",
+   "base": "meilisearch",
+   "keywords": [
+    "search",
+    "typo"
+   ],
+   "volume": {
+    "mountPath": "/meili_data",
+    "size": "5Gi"
+   },
+   "env": [
+    {
+     "key": "MEILI_MASTER_KEY",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "solr",
+   "image": "solr",
+   "name": "Apache Solr",
+   "category": "Search & vectors",
+   "description": "Enterprise search platform built on Lucene.",
+   "port": 8983,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "9",
+    "8"
+   ],
+   "defaultTag": "9",
+   "base": "apache-solr",
+   "keywords": [
+    "search",
+    "lucene"
+   ],
+   "volume": {
+    "mountPath": "/var/solr",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "qdrant",
+   "image": "qdrant/qdrant",
+   "name": "Qdrant",
+   "category": "Search & vectors",
+   "description": "Vector database for similarity search.",
+   "port": 6333,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "v1.12.0",
+    "v1.11.0",
+    "latest"
+   ],
+   "defaultTag": "v1.12.0",
+   "base": "qdrant",
+   "keywords": [
+    "vector",
+    "embeddings",
+    "ai"
+   ],
+   "volume": {
+    "mountPath": "/qdrant/storage",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "chroma",
+   "image": "chromadb/chroma",
+   "name": "Chroma",
+   "category": "Search & vectors",
+   "description": "Open source vector database for AI applications.",
+   "port": 8000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest",
+    "0.5.5"
+   ],
+   "defaultTag": "latest",
+   "base": "chroma",
+   "keywords": [
+    "vector",
+    "embeddings",
+    "ai"
+   ],
+   "volume": {
+    "mountPath": "/chroma/chroma",
+    "size": "5Gi"
+   }
+  },
+  {
+   "id": "prometheus",
+   "image": "prom/prometheus",
+   "name": "Prometheus",
+   "category": "Observability",
+   "description": "Monitoring system and time series database.",
+   "port": 9090,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "v2.54.1",
+    "v2.53.2",
+    "latest"
+   ],
+   "defaultTag": "v2.54.1",
+   "base": "prometheus",
+   "keywords": [
+    "metrics",
+    "monitoring",
+    "alerts"
+   ],
+   "volume": {
+    "mountPath": "/prometheus",
+    "size": "10Gi"
+   },
+   "popular": true
+  },
+  {
+   "id": "grafana",
+   "image": "grafana/grafana",
+   "name": "Grafana",
+   "category": "Observability",
+   "description": "Dashboards and visualisation for metrics, logs and traces.",
+   "port": 3000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "11.2.0",
+    "10.4.0",
+    "latest"
+   ],
+   "defaultTag": "11.2.0",
+   "base": "grafana",
+   "keywords": [
+    "dashboard",
+    "monitoring",
+    "visualization"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/grafana",
+    "size": "2Gi"
+   },
+   "env": [
+    {
+     "key": "GF_SECURITY_ADMIN_PASSWORD",
+     "secret": true
+    }
+   ],
+   "popular": true
+  },
+  {
+   "id": "loki",
+   "image": "grafana/loki",
+   "name": "Grafana Loki",
+   "category": "Observability",
+   "description": "Log aggregation system.",
+   "port": 3100,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "3.1.0",
+    "3.0.0",
+    "2.9.0"
+   ],
+   "defaultTag": "3.1.0",
+   "base": "grafana-loki",
+   "keywords": [
+    "logs",
+    "logging"
+   ],
+   "volume": {
+    "mountPath": "/loki",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "alertmanager",
+   "image": "prom/alertmanager",
+   "name": "Alertmanager",
+   "category": "Observability",
+   "description": "Handles alerts sent by Prometheus.",
+   "port": 9093,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "v0.27.0",
+    "latest"
+   ],
+   "defaultTag": "v0.27.0",
+   "base": "alertmanager",
+   "keywords": [
+    "alerts",
+    "monitoring"
+   ],
+   "volume": {
+    "mountPath": "/alertmanager",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "node-exporter",
+   "image": "prom/node-exporter",
+   "name": "Node Exporter",
+   "category": "Observability",
+   "description": "Exposes host hardware and OS metrics to Prometheus.",
+   "port": 9100,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "v1.8.2",
+    "latest"
+   ],
+   "defaultTag": "v1.8.2",
+   "base": "node-exporter",
+   "keywords": [
+    "metrics",
+    "monitoring"
+   ]
+  },
+  {
+   "id": "all-in-one",
+   "image": "jaegertracing/all-in-one",
+   "name": "Jaeger",
+   "category": "Observability",
+   "description": "Distributed tracing (all-in-one, in-memory). UI on 16686.",
+   "port": 16686,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "1.60",
+    "1.59",
+    "latest"
+   ],
+   "defaultTag": "1.60",
+   "base": "jaeger",
+   "keywords": [
+    "tracing",
+    "opentelemetry"
+   ]
+  },
+  {
+   "id": "zipkin",
+   "image": "openzipkin/zipkin",
+   "name": "Zipkin",
+   "category": "Observability",
+   "description": "Distributed tracing system.",
+   "port": 9411,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "3",
+    "latest"
+   ],
+   "defaultTag": "3",
+   "base": "zipkin",
+   "keywords": [
+    "tracing"
+   ]
+  },
+  {
+   "id": "opentelemetry-collector-contrib",
+   "image": "otel/opentelemetry-collector-contrib",
+   "name": "OpenTelemetry Collector",
+   "category": "Observability",
+   "description": "Receives, processes and exports telemetry.",
+   "port": 4317,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "0.108.0",
+    "latest"
+   ],
+   "defaultTag": "0.108.0",
+   "base": "opentelemetry-collector",
+   "keywords": [
+    "otel",
+    "telemetry",
+    "tracing",
+    "metrics"
+   ]
+  },
+  {
+   "id": "fluent-bit",
+   "image": "fluent/fluent-bit",
+   "name": "Fluent Bit",
+   "category": "Observability",
+   "description": "Lightweight log and metrics processor.",
+   "port": 2020,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "3.1",
+    "latest"
+   ],
+   "defaultTag": "3.1",
+   "base": "fluent-bit",
+   "keywords": [
+    "logs",
+    "logging",
+    "forwarder"
+   ]
+  },
+  {
+   "id": "uptime-kuma",
+   "image": "louislam/uptime-kuma",
+   "name": "Uptime Kuma",
+   "category": "Observability",
+   "description": "Self-hosted uptime monitoring.",
+   "port": 3001,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "1",
+    "latest",
+    "1-alpine"
+   ],
+   "defaultTag": "1",
+   "base": "uptime-kuma",
+   "keywords": [
+    "uptime",
+    "status",
+    "monitoring"
+   ],
+   "volume": {
+    "mountPath": "/app/data",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "gitea",
+   "image": "gitea/gitea",
+   "name": "Gitea",
+   "category": "Developer tools",
+   "description": "Lightweight self-hosted Git service.",
+   "port": 3000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "1.22",
+    "1.21"
+   ],
+   "defaultTag": "1.22",
+   "base": "gitea",
+   "keywords": [
+    "git",
+    "scm",
+    "forge"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "jenkins",
+   "image": "jenkins/jenkins",
+   "name": "Jenkins",
+   "category": "Developer tools",
+   "description": "Automation server for CI/CD.",
+   "port": 8080,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "lts",
+    "lts-jdk21",
+    "lts-jdk17"
+   ],
+   "defaultTag": "lts",
+   "base": "jenkins",
+   "keywords": [
+    "ci",
+    "cd",
+    "build",
+    "pipeline"
+   ],
+   "volume": {
+    "mountPath": "/var/jenkins_home",
+    "size": "20Gi"
+   }
+  },
+  {
+   "id": "sonarqube",
+   "image": "sonarqube",
+   "name": "SonarQube",
+   "category": "Developer tools",
+   "description": "Code quality and security analysis.",
+   "port": 9000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "community",
+    "10-community",
+    "lts-community"
+   ],
+   "defaultTag": "community",
+   "base": "sonarqube",
+   "keywords": [
+    "code quality",
+    "static analysis"
+   ],
+   "volume": {
+    "mountPath": "/opt/sonarqube/data",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "registry",
+   "image": "registry",
+   "name": "Docker Registry",
+   "category": "Developer tools",
+   "description": "Private container image registry.",
+   "port": 5000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "2"
+   ],
+   "defaultTag": "2",
+   "base": "docker-registry",
+   "keywords": [
+    "images",
+    "registry",
+    "oci"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/registry",
+    "size": "20Gi"
+   }
+  },
+  {
+   "id": "verdaccio",
+   "image": "verdaccio/verdaccio",
+   "name": "Verdaccio",
+   "category": "Developer tools",
+   "description": "Private npm registry.",
+   "port": 4873,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "5",
+    "latest"
+   ],
+   "defaultTag": "5",
+   "base": "verdaccio",
+   "keywords": [
+    "npm",
+    "registry",
+    "packages"
+   ],
+   "volume": {
+    "mountPath": "/verdaccio/storage",
+    "size": "5Gi"
+   }
+  },
+  {
+   "id": "adminer",
+   "image": "adminer",
+   "name": "Adminer",
+   "category": "Developer tools",
+   "description": "Database management in a single PHP file.",
+   "port": 8080,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "4",
+    "latest"
+   ],
+   "defaultTag": "4",
+   "base": "adminer",
+   "keywords": [
+    "database",
+    "admin",
+    "sql"
+   ]
+  },
+  {
+   "id": "phpmyadmin",
+   "image": "phpmyadmin",
+   "name": "phpMyAdmin",
+   "category": "Developer tools",
+   "description": "Web interface for MySQL and MariaDB. Set PMA_HOST.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "5",
+    "latest"
+   ],
+   "defaultTag": "5",
+   "base": "phpmyadmin",
+   "keywords": [
+    "mysql",
+    "mariadb",
+    "admin"
+   ],
+   "env": [
+    {
+     "key": "PMA_HOST",
+     "value": "mysql"
+    }
+   ]
+  },
+  {
+   "id": "pgadmin4",
+   "image": "dpage/pgadmin4",
+   "name": "pgAdmin",
+   "category": "Developer tools",
+   "description": "Administration and development platform for PostgreSQL.",
+   "port": 80,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "8",
+    "latest"
+   ],
+   "defaultTag": "8",
+   "base": "pgadmin",
+   "keywords": [
+    "postgres",
+    "admin",
+    "sql"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/pgadmin",
+    "size": "1Gi"
+   },
+   "env": [
+    {
+     "key": "PGADMIN_DEFAULT_EMAIL",
+     "value": "admin@example.com"
+    },
+    {
+     "key": "PGADMIN_DEFAULT_PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "redisinsight",
+   "image": "redis/redisinsight",
+   "name": "Redis Insight",
+   "category": "Developer tools",
+   "description": "GUI for browsing and querying Redis.",
+   "port": 5540,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest",
+    "2.58"
+   ],
+   "defaultTag": "latest",
+   "base": "redis-insight",
+   "keywords": [
+    "redis",
+    "gui",
+    "admin"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "mailpit",
+   "image": "axllent/mailpit",
+   "name": "Mailpit",
+   "category": "Developer tools",
+   "description": "Catches outgoing email for testing. Web UI on 8025, SMTP on 1025.",
+   "port": 8025,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "v1.20",
+    "latest"
+   ],
+   "defaultTag": "v1.20",
+   "base": "mailpit",
+   "keywords": [
+    "email",
+    "smtp",
+    "testing"
+   ]
+  },
+  {
+   "id": "code-server",
+   "image": "codercom/code-server",
+   "name": "code-server",
+   "category": "Developer tools",
+   "description": "VS Code in the browser.",
+   "port": 8080,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "code-server",
+   "keywords": [
+    "vscode",
+    "ide",
+    "editor"
+   ],
+   "volume": {
+    "mountPath": "/home/coder",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "PASSWORD",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "vault",
+   "image": "hashicorp/vault",
+   "name": "HashiCorp Vault",
+   "category": "Security",
+   "description": "Secrets management. Runs in dev mode by default: data is not kept.",
+   "port": 8200,
+   "kind": "stateless",
+   "expose": false,
+   "tags": [
+    "1.17",
+    "1.16",
+    "latest"
+   ],
+   "defaultTag": "1.17",
+   "base": "hashicorp-vault",
+   "keywords": [
+    "secrets",
+    "kms"
+   ]
+  },
+  {
+   "id": "server-2",
+   "image": "vaultwarden/server",
+   "name": "Vaultwarden",
+   "category": "Security",
+   "description": "Lightweight Bitwarden-compatible password manager server.",
+   "port": 80,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest",
+    "alpine"
+   ],
+   "defaultTag": "latest",
+   "base": "vaultwarden",
+   "keywords": [
+    "passwords",
+    "bitwarden"
+   ],
+   "volume": {
+    "mountPath": "/data",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "wordpress",
+   "image": "wordpress",
+   "name": "WordPress",
+   "category": "Apps & CMS",
+   "description": "The most popular CMS. Needs a MySQL or MariaDB database.",
+   "port": 80,
+   "kind": "stateful",
+   "expose": true,
+   "tags": [
+    "6",
+    "6-apache",
+    "6-fpm"
+   ],
+   "defaultTag": "6",
+   "base": "wordpress",
+   "keywords": [
+    "cms",
+    "blog",
+    "php"
+   ],
+   "volume": {
+    "mountPath": "/var/www/html",
+    "size": "10Gi"
+   },
+   "env": [
+    {
+     "key": "WORDPRESS_DB_HOST",
+     "value": "mysql"
+    },
+    {
+     "key": "WORDPRESS_DB_USER",
+     "value": "wordpress"
+    },
+    {
+     "key": "WORDPRESS_DB_PASSWORD",
+     "secret": true
+    },
+    {
+     "key": "WORDPRESS_DB_NAME",
+     "value": "wordpress"
+    }
+   ],
+   "popular": true
+  },
+  {
+   "id": "ghost",
+   "image": "ghost",
+   "name": "Ghost",
+   "category": "Apps & CMS",
+   "description": "Publishing platform for blogs and newsletters. Uses SQLite unless configured.",
+   "port": 2368,
+   "kind": "stateful",
+   "expose": true,
+   "tags": [
+    "5",
+    "5-alpine"
+   ],
+   "defaultTag": "5",
+   "base": "ghost",
+   "keywords": [
+    "blog",
+    "cms",
+    "newsletter"
+   ],
+   "volume": {
+    "mountPath": "/var/lib/ghost/content",
+    "size": "5Gi"
+   },
+   "env": [
+    {
+     "key": "url",
+     "value": "http://localhost:2368"
+    }
+   ]
+  },
+  {
+   "id": "nextcloud",
+   "image": "nextcloud",
+   "name": "Nextcloud",
+   "category": "Apps & CMS",
+   "description": "Self-hosted file sync and collaboration.",
+   "port": 80,
+   "kind": "stateful",
+   "expose": true,
+   "tags": [
+    "29",
+    "28",
+    "29-apache"
+   ],
+   "defaultTag": "29",
+   "base": "nextcloud",
+   "keywords": [
+    "files",
+    "cloud",
+    "storage"
+   ],
+   "volume": {
+    "mountPath": "/var/www/html",
+    "size": "50Gi"
+   }
+  },
+  {
+   "id": "metabase",
+   "image": "metabase/metabase",
+   "name": "Metabase",
+   "category": "Apps & CMS",
+   "description": "Business intelligence and dashboards. Keeps its data in a file on the volume.",
+   "port": 3000,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "metabase",
+   "keywords": [
+    "bi",
+    "analytics",
+    "dashboard"
+   ],
+   "volume": {
+    "mountPath": "/metabase-data",
+    "size": "5Gi"
+   },
+   "env": [
+    {
+     "key": "MB_DB_FILE",
+     "value": "/metabase-data/metabase.db"
+    }
+   ]
+  },
+  {
+   "id": "n8n",
+   "image": "n8nio/n8n",
+   "name": "n8n",
+   "category": "Apps & CMS",
+   "description": "Workflow automation.",
+   "port": 5678,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "n8n",
+   "keywords": [
+    "automation",
+    "workflow",
+    "zapier"
+   ],
+   "volume": {
+    "mountPath": "/home/node/.n8n",
+    "size": "5Gi"
+   }
+  },
+  {
+   "id": "nocodb",
+   "image": "nocodb/nocodb",
+   "name": "NocoDB",
+   "category": "Apps & CMS",
+   "description": "Turns a database into a spreadsheet-like interface.",
+   "port": 8080,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "nocodb",
+   "keywords": [
+    "airtable",
+    "database",
+    "nocode"
+   ],
+   "volume": {
+    "mountPath": "/usr/app/data",
+    "size": "5Gi"
+   }
+  },
+  {
+   "id": "umami",
+   "image": "ghcr.io/umami-software/umami",
+   "name": "Umami",
+   "category": "Apps & CMS",
+   "description": "Simple, privacy-focused web analytics. Needs PostgreSQL.",
+   "port": 3000,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "postgresql-latest"
+   ],
+   "defaultTag": "postgresql-latest",
+   "base": "umami",
+   "keywords": [
+    "analytics",
+    "privacy"
+   ],
+   "env": [
+    {
+     "key": "DATABASE_URL",
+     "secret": true
+    },
+    {
+     "key": "APP_SECRET",
+     "secret": true
+    }
+   ]
+  },
+  {
+   "id": "wiki",
+   "image": "ghcr.io/requarks/wiki",
+   "name": "Wiki.js",
+   "category": "Apps & CMS",
+   "description": "Modern wiki. Needs a database.",
+   "port": 3000,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "2"
+   ],
+   "defaultTag": "2",
+   "base": "wiki-js",
+   "keywords": [
+    "wiki",
+    "docs"
+   ],
+   "env": [
+    {
+     "key": "DB_TYPE",
+     "value": "postgres"
+    },
+    {
+     "key": "DB_HOST",
+     "value": "postgres"
+    },
+    {
+     "key": "DB_PORT",
+     "value": "5432"
+    },
+    {
+     "key": "DB_USER",
+     "value": "wikijs"
+    },
+    {
+     "key": "DB_PASS",
+     "secret": true
+    },
+    {
+     "key": "DB_NAME",
+     "value": "wiki"
+    }
+   ]
+  },
+  {
+   "id": "server-3",
+   "image": "gotify/server",
+   "name": "Gotify",
+   "category": "Apps & CMS",
+   "description": "Self-hosted push notification server.",
+   "port": 80,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "gotify",
+   "keywords": [
+    "notifications",
+    "push"
+   ],
+   "volume": {
+    "mountPath": "/app/data",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "memos",
+   "image": "neosmemo/memos",
+   "name": "Memos",
+   "category": "Apps & CMS",
+   "description": "Lightweight self-hosted note-taking.",
+   "port": 5230,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "stable"
+   ],
+   "defaultTag": "stable",
+   "base": "memos",
+   "keywords": [
+    "notes",
+    "memo"
+   ],
+   "volume": {
+    "mountPath": "/var/opt/memos",
+    "size": "1Gi"
+   }
+  },
+  {
+   "id": "excalidraw",
+   "image": "excalidraw/excalidraw",
+   "name": "Excalidraw",
+   "category": "Apps & CMS",
+   "description": "Virtual whiteboard for sketching diagrams.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "excalidraw",
+   "keywords": [
+    "whiteboard",
+    "diagram",
+    "draw"
+   ]
+  },
+  {
+   "id": "ollama",
+   "image": "ollama/ollama",
+   "name": "Ollama",
+   "category": "AI & data science",
+   "description": "Run large language models locally. Models are stored on the volume.",
+   "port": 11434,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest",
+    "rocm"
+   ],
+   "defaultTag": "latest",
+   "base": "ollama",
+   "keywords": [
+    "llm",
+    "models",
+    "inference",
+    "ai"
+   ],
+   "volume": {
+    "mountPath": "/root/.ollama",
+    "size": "50Gi"
+   }
+  },
+  {
+   "id": "open-webui",
+   "image": "ghcr.io/open-webui/open-webui",
+   "name": "Open WebUI",
+   "category": "AI & data science",
+   "description": "Chat interface for Ollama and OpenAI-compatible APIs.",
+   "port": 8080,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "main"
+   ],
+   "defaultTag": "main",
+   "base": "open-webui",
+   "keywords": [
+    "llm",
+    "chat",
+    "ai",
+    "ollama"
+   ],
+   "volume": {
+    "mountPath": "/app/backend/data",
+    "size": "5Gi"
+   },
+   "env": [
+    {
+     "key": "OLLAMA_BASE_URL",
+     "value": "http://ollama:11434"
+    }
+   ]
+  },
+  {
+   "id": "minimal-notebook",
+   "image": "quay.io/jupyter/minimal-notebook",
+   "name": "Jupyter Notebook",
+   "category": "AI & data science",
+   "description": "Interactive notebooks for data science.",
+   "port": 8888,
+   "kind": "stateful",
+   "expose": false,
+   "tags": [
+    "latest"
+   ],
+   "defaultTag": "latest",
+   "base": "jupyter-notebook",
+   "keywords": [
+    "notebook",
+    "python",
+    "data science"
+   ],
+   "volume": {
+    "mountPath": "/home/jovyan/work",
+    "size": "10Gi"
+   }
+  },
+  {
+   "id": "whoami",
+   "image": "traefik/whoami",
+   "name": "whoami",
+   "category": "Demo & testing",
+   "description": "Tiny web server that prints request details. Handy for testing ingress.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "v1.10.3",
+    "latest"
+   ],
+   "defaultTag": "v1.10.3",
+   "base": "whoami",
+   "keywords": [
+    "test",
+    "echo",
+    "debug"
+   ]
+  },
+  {
+   "id": "hello",
+   "image": "nginxdemos/hello",
+   "name": "NGINX Hello",
+   "category": "Demo & testing",
+   "description": "Plain-text page showing the server name and address. Good for load balancing demos.",
+   "port": 80,
+   "kind": "stateless",
+   "expose": true,
+   "tags": [
+    "plain-text",
+    "latest"
+   ],
+   "defaultTag": "plain-text",
+   "base": "nginx-hello",
+   "keywords": [
+    "test",
+    "demo",
+    "hello"
+   ]
+  }
+ ]
+}
