@@ -7,6 +7,8 @@ sketch your containers as boxes on a canvas, draw arrows for "this needs that", 
 order, runs each container on a Kubernetes cluster, and tells you when it is ready, with a public web address if you
 asked for one.
 
+![The Nimbus landing page: a diagram of containers with their connections, and a sign-in with GitHub button](docs/images/landing.webp)
+
 ## What you can do
 
 - **Design visually.** Add containers on a canvas, set their image, port, replicas and environment, and connect them.
