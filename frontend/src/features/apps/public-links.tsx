@@ -38,3 +38,30 @@ export function PublicLinks({ urls, className }: { urls: PublicUrl[]; className?
     </DropdownMenu>
   )
 }
+
+/** The addresses themselves, as visible links: one row per public container, so nobody has to open a menu to find them. */
+export function PublicUrlList({ urls, className, max }: { urls: PublicUrl[]; className?: string; max?: number }) {
+  if (urls.length === 0) return null
+  const shown = max ? urls.slice(0, max) : urls
+  const hidden = urls.length - shown.length
+  return (
+    <ul className={cn('space-y-1', className)} aria-label="Public addresses">
+      {shown.map((u) => (
+        <li key={u.container} className="flex min-w-0 items-baseline gap-2 text-sm">
+          <span className="text-muted-foreground shrink-0 text-xs">{u.container}</span>
+          <a
+            href={u.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-info inline-flex min-w-0 items-center gap-1 font-mono text-xs hover:underline"
+            title={u.url}
+          >
+            <span className="truncate">{host(u.url)}</span>
+            <ExternalLink className="size-3 shrink-0" />
+          </a>
+        </li>
+      ))}
+      {hidden > 0 && <li className="text-muted-foreground text-xs">and {hidden} more</li>}
+    </ul>
+  )
+}

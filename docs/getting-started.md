@@ -202,7 +202,7 @@ make other people admins (and take it away again). Role changes apply immediatel
 
 1. On the dashboard choose **Import YAML** and pick the file.
 2. Open the app and press **Deploy**.
-3. With a Kubernetes runner and a Gateway (see above), an **Open** button appears when it is done. Reloading the page
+3. With a Kubernetes runner and a Gateway (see above), the public address is listed on the app's page (under "Live at") and on its dashboard card when it is done. Reloading the page
    shows its two replicas taking turns. With the stand-in runner, the deployment completes but nothing is running.
 
 ## Where things are

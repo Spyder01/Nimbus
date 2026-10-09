@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import type { ContainerData, EnvVar, Problem } from '@/features/apps/types'
+import { PublicUrlList } from '@/features/apps/public-links'
+import type { ContainerData, EnvVar, Problem, PublicUrl } from '@/features/apps/types'
 import { applyEntry } from '@/features/images/catalog'
 import { ImagePicker } from '@/features/images/image-picker'
 import { cn } from '@/lib/utils'
@@ -21,15 +22,18 @@ import type { FlowNode } from './graph'
 
 interface Props {
   node: FlowNode
+  /** Where the running app's public containers are open; this container's, if it is one, is shown. */
+  publicUrls?: PublicUrl[]
   problems: Problem[]
   onChange: (patch: Partial<ContainerData>) => void
   onDelete: () => void
   onClose: () => void
 }
 
-export function Inspector({ node, problems, onChange, onDelete, onClose }: Props) {
+export function Inspector({ node, publicUrls = [], problems, onChange, onDelete, onClose }: Props) {
   const d = node.data
   const [confirmPublic, setConfirmPublic] = useState(false)
+  const live = publicUrls.filter((u) => u.container === d.name.trim())
   const stateful = d.kind === 'stateful'
   const autoscale = !stateful && (d.minReplicas != null || d.maxReplicas != null || d.cpuTarget != null)
   const msgs = (field: string) => problems.filter((p) => p.field === field).map((p) => p.message)
@@ -117,6 +121,12 @@ export function Inspector({ node, problems, onChange, onDelete, onClose }: Props
         <div className="space-y-2">
           {/* Turning it on is the one change that opens a container to everyone, so it asks first; turning it off doesn't. */}
           <ToggleRow label="Public" hint="Gets a web address anyone can open" checked={d.expose} onChange={(expose) => (expose ? setConfirmPublic(true) : onChange({ expose: false }))} />
+          {d.expose && live.length > 0 && (
+            <div className="bg-muted/40 rounded-lg px-3 py-2">
+              <div className="text-muted-foreground mb-1 text-[11px] font-medium tracking-wide uppercase">Live at</div>
+              <PublicUrlList urls={live} />
+            </div>
+          )}
           {d.expose && (
             <p className="text-warn flex items-start gap-1.5 text-xs text-pretty">
               <Globe className="mt-px size-3.5 shrink-0" />

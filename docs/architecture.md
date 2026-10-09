@@ -397,7 +397,7 @@ sequenceDiagram
 - **The controller is replaceable.** Nimbus only creates standard Gateway API objects, so any conforming controller can
   serve the Gateway. The development setup uses Envoy Gateway.
 - **The worker waits for the Gateway to accept the route** and records the final address on the job; the UI then shows
-  an **Open** link. Turning Public off and redeploying removes the route.
+  the address. It is listed in plain sight: in a "Live at" bar on the app's page, under the container's Public switch, and on the app's card on the dashboard. Turning Public off and redeploying removes the route.
 - **It is public on purpose.** Turning Public on asks for confirmation, because there is no sign-in in front of a public
   container. Only web traffic is supported (not databases or other protocols), and only plain HTTP for now.
 - **Names.** Because the address is built from the container's name, a public container's name is limited to 54

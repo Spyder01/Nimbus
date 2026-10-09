@@ -16,12 +16,12 @@ import {
   type Connection,
   type NodeTypes,
 } from '@xyflow/react'
-import { AlertTriangle, ArrowLeft, Check, Copy, Download, History, Loader2, Plus, Rocket, Save, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, Copy, Download, Globe, History, Loader2, Plus, Rocket, Save, X } from 'lucide-react'
 import { Link } from 'react-router'
 import { useTheme } from '@/components/theme-provider'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { PublicLinks } from '@/features/apps/public-links'
+import { PublicLinks, PublicUrlList } from '@/features/apps/public-links'
 import { templateFromEntry } from '@/features/images/catalog'
 import { ImageBrowser } from '@/features/images/image-browser'
 import { appsKey, useCancelDeployment, useDeploy, useDeployments } from '@/features/apps/queries'
@@ -213,7 +213,6 @@ function Editor({ app }: { app: AppDetail }) {
         </Link>
         <RenameTitle appId={app.id} name={name} onRenamed={setName} />
         <StateBadge state={appState} deployment={active} className="hidden sm:inline-flex" />
-        <PublicLinks urls={publicUrls} className="hidden sm:inline-flex" />
         <SaveIndicator status={autosave.status} error={autosave.error} notice={notice} onRetry={() => void autosave.retry()} />
 
         <div className="ml-auto flex items-center gap-2">
@@ -264,6 +263,15 @@ function Editor({ app }: { app: AppDetail }) {
           </Button>
         </div>
       </div>
+
+      {publicUrls.length > 0 && (
+        <div className="border-border bg-muted/30 flex flex-wrap items-start gap-x-3 gap-y-1 border-b px-4 py-2">
+          <span className="flex items-center gap-1.5 pt-0.5 text-xs font-medium">
+            <Globe className="text-ok size-3.5" /> Live at
+          </span>
+          <PublicUrlList urls={publicUrls} className="flex flex-wrap gap-x-5 gap-y-1 space-y-0" />
+        </div>
+      )}
 
       {autosave.status === 'conflict' && (
         <div role="alert" className="flex flex-wrap items-center gap-3 border-b border-warn/40 bg-warn/10 px-4 py-2 text-sm">
@@ -371,6 +379,7 @@ function Editor({ app }: { app: AppDetail }) {
                 <Inspector
                   key={single.id}
                   node={single}
+                  publicUrls={publicUrls}
                   problems={problemsByNode.get(single.id) ?? []}
                   onChange={(patch) => patchNode(single.id, patch)}
                   onDelete={() => void deleteElements({ nodes: [{ id: single.id }] })}
