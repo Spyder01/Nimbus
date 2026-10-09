@@ -1,0 +1,47 @@
+# Directus (the headless CMS / data platform) the way you would run it for real: PostgreSQL for the data, a volume for
+# uploaded files, and the passwords kept as secrets (their values are never stored in the design).
+#
+# NOTE: this needs stateful containers (volumes) and secret values, which the Kubernetes runner does not deploy yet.
+# You can import it, look at it and edit it now; deploying it will fail with a clear "not supported yet" message until
+# those features are built. For something that deploys today, use directus-quickstart.yaml.
+#
+# When secrets are supported you will enter their values at deploy time. Two of them have to match:
+#   * DB_PASSWORD (on directus) must equal POSTGRES_PASSWORD (on db): it is the same database password.
+#   * ADMIN_PASSWORD is the password of the first admin account, created on the first start.
+#
+# The database is deployed first (directus needs it). Directus finds it by the name "db".
+app: directus
+services:
+  db:
+    image: postgres:16
+    port: 5432
+    kind: stateful
+    replicas: 1
+    volume: { size: 10Gi, mount: /var/lib/postgresql/data }
+    env:
+      POSTGRES_USER: directus
+      POSTGRES_DB: directus
+      POSTGRES_PASSWORD: "<secret>"
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+  directus:
+    image: directus/directus:12.5
+    port: 8055
+    expose: true
+    kind: stateful
+    replicas: 1
+    # Uploaded files. Without a volume they would be lost whenever the container restarts.
+    volume: { size: 5Gi, mount: /directus/uploads }
+    env:
+      DB_CLIENT: pg
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: directus
+      DB_USER: directus
+      DB_PASSWORD: "<secret>"
+      # Signs login sessions. Keep it secret, and keep it the same across restarts.
+      SECRET: "<secret>"
+      # The first admin account, created the first time Directus starts. Remove these after that if you like.
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: "<secret>"
+    needs: [db]

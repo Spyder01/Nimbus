@@ -196,14 +196,19 @@ you if the person has not signed in yet.
 Reload the page. You will see **Workers** and **Members** under *Admin* in the sidebar. From the Members page a super admin can
 make other people admins (and take it away again). Role changes apply immediately.
 
-## Try it: the example app
+## Try it: the example apps
 
-[`examples/hello-ui.yaml`](../examples/hello-ui.yaml) is a small app with a public web page and a private service behind it.
+The [`examples/`](../examples) folder has designs to import from the dashboard (**Import YAML**):
 
-1. On the dashboard choose **Import YAML** and pick the file.
-2. Open the app and press **Deploy**.
-3. With a Kubernetes runner and a Gateway (see above), the public address is listed on the app's page (under "Live at") and on its dashboard card when it is done. Reloading the page
-   shows its two replicas taking turns. With the stand-in runner, the deployment completes but nothing is running.
+| File | What it is | Deploys today? |
+|---|---|---|
+| [`hello-ui.yaml`](../examples/hello-ui.yaml) | A public web page that shows which replica answered, plus a private service behind it. | Yes |
+| [`directus-quickstart.yaml`](../examples/directus-quickstart.yaml) | [Directus](https://directus.io) (a headless CMS) on its own, with a built-in database. It holds no credentials: the first visit asks you to create the admin account. Its data lives in the container, so it is for trying out only. | Yes |
+| [`directus.yaml`](../examples/directus.yaml) | Directus as you would run it for real: PostgreSQL, a volume for uploads, and secret passwords. | Not yet (needs secrets) |
+
+For any of them: import the file, open the app and press **Deploy**. With a Kubernetes runner and a Gateway (see above), the
+public address is listed on the app's page (under "Live at") and on its dashboard card when it is done. With the stand-in
+runner, the deployment completes but nothing is running.
 
 ## Where things are
 
@@ -233,7 +238,7 @@ make other people admins (and take it away again). Role changes apply immediatel
 | `docker compose ps` shows the backend unhealthy | Look at `docker compose logs backend`. The usual causes are the database not being ready yet or a missing `GITHUB_*` value. |
 | The Workers page is empty | Workers register after the backend has created the tables. Check they are running and can reach the database. |
 | Deployments stay "Queued" | No worker is running, or all of them are at their parallel-jobs limit. Check the Workers page. |
-| A job fails with "not supported yet" | The design uses a volume (stateful container) or a secret value, which the Kubernetes runner does not deploy yet. |
+| A job fails with "not supported yet" | The design uses a secret value, or a stateful container with more than one replica, which the Kubernetes runner does not deploy yet. |
 | A job fails saying the worker has no `WORKER_BASE_DOMAIN` | A container is marked Public but the worker was not given a domain and Gateway. See the section on local clusters above. |
 | Port 80 is in use when creating the dev cluster | The Gateway needs port 80 on your machine. Stop whatever is using it. |
 | Public address does not open | Some browsers do not resolve `*.localhost`; use `localtest.me` as `WORKER_BASE_DOMAIN`, or add a hosts entry. |

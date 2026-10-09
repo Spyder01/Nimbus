@@ -54,7 +54,7 @@ Open **http://localhost:8080** and sign in (then `scripts/promote-super-admin.sh
 workers, from the published images. Out of the box the workers use a stand-in runner that deploys nothing, so you can try
 everything without a cluster; to deploy for real, see [Running with Docker](docs/running-with-docker.md#deploying-to-a-real-cluster).
 
-To try a ready-made app, import [`examples/hello-ui.yaml`](examples/hello-ui.yaml) from the dashboard.
+To try a ready-made app, import one of the [examples](examples) from the dashboard: a small web page, or [Directus](https://directus.io).
 
 ## Documentation
 
@@ -91,8 +91,8 @@ To try a ready-made app, import [`examples/hello-ui.yaml`](examples/hello-ui.yam
 
 ## Status
 
-Nimbus works end to end for **stateless containers**: design, version, deploy in order, autoscale, cancel, and give
-containers public HTTP addresses. Not built yet: **stateful containers (volumes) and secret values**, cleaning up the
+Nimbus works end to end: design, version, deploy in order, autoscale stateless containers, run single-replica stateful
+containers with a volume, cancel, and give containers public HTTP addresses. Not built yet: **secret values**, cleaning up the
 cluster when a design shrinks or an app is deleted, HTTPS for public addresses, and health monitoring after deployment.
 The Kubernetes runner refuses designs that need an unfinished feature, with a clear message, rather than deploying them
 half-configured. The full list is at the end of [Architecture](docs/architecture.md#limits-and-what-is-not-built-yet).

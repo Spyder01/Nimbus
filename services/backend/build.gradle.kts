@@ -76,6 +76,8 @@ allOpen {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // The example designs are tested too (ExampleDesignsTest), so changing one must re-run the tests.
+    inputs.dir("../../examples")
 }
 
 // Embed the UI: if the frontend has been built (frontend/dist), ship it inside the jar under /static.

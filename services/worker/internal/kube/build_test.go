@@ -1,6 +1,11 @@
 package kube
 
-import "testing"
+import (
+	"testing"
+
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 const app = "0f1e2d3c-1111-2222-3333-444455556666"
 
@@ -117,5 +122,66 @@ func TestNamespaceIsLabelled(t *testing.T) {
 	}
 	if len(n.Name) > 63 {
 		t.Errorf("namespace name too long: %d", len(n.Name))
+	}
+}
+
+func statefulContainer() Container {
+	port := 5432
+	return Container{Name: "db", Image: "postgres:16", Kind: "stateful", Replicas: 1, Port: &port,
+		Volume: &Volume{Size: "2Gi", MountPath: "/var/lib/postgresql/data"}}
+}
+
+func TestStatefulSet(t *testing.T) {
+	c := statefulContainer()
+	s := StatefulSet(app, "dep-1", c)
+
+	if s.Namespace != NamespaceFor(app) || *s.Spec.Replicas != 1 || s.Spec.ServiceName != "db" {
+		t.Errorf("wrong shape: %+v", s.Spec)
+	}
+	if len(s.Spec.VolumeClaimTemplates) != 1 {
+		t.Fatalf("claims: %+v", s.Spec.VolumeClaimTemplates)
+	}
+	claim := s.Spec.VolumeClaimTemplates[0]
+	if q := claim.Spec.Resources.Requests["storage"]; q.String() != "2Gi" {
+		t.Errorf("size = %s", q.String())
+	}
+	mounts := s.Spec.Template.Spec.Containers[0].VolumeMounts
+	if len(mounts) != 1 || mounts[0].Name != claim.Name || mounts[0].MountPath != "/var/lib/postgresql/data" {
+		t.Errorf("mounts %+v do not match claim %q", mounts, claim.Name)
+	}
+	// The data must outlive the container, whether it is removed or scaled down.
+	r := s.Spec.PersistentVolumeClaimRetentionPolicy
+	if r == nil || r.WhenDeleted != "Retain" || r.WhenScaled != "Retain" {
+		t.Errorf("retention policy: %+v", r)
+	}
+	// Same pods, ports and probe as a stateless one, and the same selector.
+	d := Deployment(app, "dep-1", Container{Name: "db", Image: "postgres:16", Kind: "stateless", Replicas: 1, Port: c.Port}, 60)
+	if len(s.Spec.Template.Spec.Containers[0].Ports) != 1 || s.Spec.Template.Spec.Containers[0].ReadinessProbe == nil ||
+		s.Spec.Selector.String() != d.Spec.Selector.String() {
+		t.Error("pod differs from a stateless container's")
+	}
+}
+
+func TestStatefulStatus(t *testing.T) {
+	one := int32(1)
+	sts := func(gen, observed int64, updated, available int32) *appsv1.StatefulSet {
+		return &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{Generation: gen},
+			Spec:       appsv1.StatefulSetSpec{Replicas: &one},
+			Status:     appsv1.StatefulSetStatus{ObservedGeneration: observed, UpdatedReplicas: updated, AvailableReplicas: available},
+		}
+	}
+	for name, tc := range map[string]struct {
+		s    *appsv1.StatefulSet
+		done bool
+	}{
+		"not observed yet":  {sts(2, 1, 1, 1), false},
+		"not updated":       {sts(1, 1, 0, 0), false},
+		"not yet available": {sts(1, 1, 1, 0), false},
+		"done":              {sts(1, 1, 1, 1), true},
+	} {
+		if done, failed, _ := statefulStatus(tc.s); done != tc.done || failed != "" {
+			t.Errorf("%s: done=%v failed=%q", name, done, failed)
+		}
 	}
 }

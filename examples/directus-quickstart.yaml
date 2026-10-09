@@ -1,0 +1,20 @@
+# Directus (the headless CMS / data platform) on its own, with a built-in SQLite database. Import it from the dashboard
+# ("Import YAML"), open it, and press Deploy. It works with what Nimbus can deploy today.
+#
+# What to expect:
+#   * It has NO credentials in it. The first time you open the address, Directus asks you to create the admin account.
+#     Until you do, whoever reaches the address first can; so only deploy this where that is you (for example a local
+#     cluster), or do the first-visit setup straight away.
+#   * The data lives inside the container, so it is lost when the container restarts. That is fine for trying Directus
+#     out; for anything you want to keep, use directus.yaml (Postgres, volumes, secrets), once Nimbus can deploy secrets.
+#   * Directus takes about 20 seconds to start the first time.
+app: directus-quickstart
+services:
+  directus:
+    image: directus/directus:12.5
+    port: 8055
+    expose: true
+    replicas: 1
+    env:
+      DB_CLIENT: sqlite3
+      DB_FILENAME: /directus/database/data.db

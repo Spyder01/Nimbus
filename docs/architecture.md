@@ -541,8 +541,9 @@ management, deploying stateless containers to Kubernetes, autoscaling, and publi
 
 **Not built yet** (the design leaves room for each):
 
-- **Stateful containers and volumes**, and **secret values**: the Kubernetes runner refuses designs that use them, with a
-  clear message, instead of deploying them half-configured.
+- **Secret values**, and **stateful containers with more than one replica**, volume resizing and backups: the Kubernetes
+  runner refuses designs that use them, with a clear message, instead of deploying them half-configured. A stateful
+  container runs as a single pod with a volume that is kept when the container is removed or its deployment cancelled.
 - **Cleaning up on redeploy and delete**: containers removed from a design are not yet removed from the cluster, and
   deleting an app does not yet delete its namespace.
 - **HTTPS** for public containers (certificates).

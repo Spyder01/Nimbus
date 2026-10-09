@@ -58,7 +58,7 @@ func (k *Kubernetes) Run(ctx context.Context, job jobs.Job) (Result, error) {
 	}
 	log.Info("applied to the cluster; waiting until it is ready", "namespace", kube.NamespaceFor(job.AppID), "new", created, "public", c.Expose)
 
-	if err := k.deployer.WaitReady(ctx, job.AppID, c.Name, k.timeout); err != nil {
+	if err := k.deployer.WaitReady(ctx, job.AppID, c, k.timeout); err != nil {
 		return Result{}, k.stopped(ctx, log, job, created, err)
 	}
 	if c.Expose {

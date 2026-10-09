@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // Container is one container of the app's graph, as the backend stores it for a job (the spec of a deployment task).
@@ -37,6 +39,9 @@ type Volume struct {
 	MountPath string `json:"mountPath"`
 }
 
+// Stateful containers run as a StatefulSet with a volume that outlives their pods.
+func (c Container) Stateful() bool { return c.Kind == "stateful" }
+
 // Autoscaled is true when the design asks for the replica count to follow load.
 func (c Container) Autoscaled() bool {
 	return c.Kind == "stateless" && (c.MinReplicas != nil || c.MaxReplicas != nil || c.CPUTarget != nil)
@@ -58,8 +63,20 @@ func ParseContainer(raw json.RawMessage) (Container, error) {
 	if c.Replicas < 1 {
 		c.Replicas = 1
 	}
-	if c.Kind == "stateful" || c.Volume != nil {
-		return Container{}, fmt.Errorf("stateful containers (volumes): %w", ErrNotSupported)
+	if c.Volume != nil && c.Kind != "stateful" {
+		return Container{}, errors.New("only a stateful container can have a volume")
+	}
+	if c.Stateful() {
+		if c.Volume == nil {
+			return Container{}, errors.New("a stateful container needs a volume")
+		}
+		if _, err := resource.ParseQuantity(c.Volume.Size); err != nil || !strings.HasPrefix(c.Volume.MountPath, "/") {
+			return Container{}, fmt.Errorf("the volume needs a size like 1Gi and an absolute mount path (got %q at %q)", c.Volume.Size, c.Volume.MountPath)
+		}
+		// More than one replica of a database is not a replicated database: each would get its own empty volume.
+		if c.Replicas > 1 {
+			return Container{}, fmt.Errorf("stateful containers with more than one replica: %w", ErrNotSupported)
+		}
 	}
 	var secrets []string
 	for _, e := range c.Env {

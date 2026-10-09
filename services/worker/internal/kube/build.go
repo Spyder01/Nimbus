@@ -42,9 +42,9 @@ func Namespace(appID string) *corev1.Namespace {
 	}
 }
 
-// Deployment runs a stateless container. With autoscaling the replica count belongs to the autoscaler, so it is left
-// out and re-applying a design never fights it.
-func Deployment(appID, deploymentID string, c Container, timeoutSeconds int32) *appsv1.Deployment {
+// podTemplate is the pod a container runs in, whichever kind of workload runs it. minReady is how long a pod must stay
+// up before it counts as available.
+func podTemplate(appID string, c Container) (tpl corev1.PodTemplateSpec, minReady int32) {
 	container := corev1.Container{
 		Name:  c.Name,
 		Image: c.Image,
@@ -70,14 +70,33 @@ func Deployment(appID, deploymentID string, c Container, timeoutSeconds int32) *
 			PeriodSeconds:       5,
 		}
 	}
+	if c.Stateful() && c.Volume != nil {
+		container.VolumeMounts = []corev1.VolumeMount{{Name: volumeName, MountPath: c.Volume.MountPath}}
+	}
 
 	// A pod only counts as available after staying up this long. Without it a container that starts and then crashes
 	// right away (and one with no port, so nothing to probe) would be taken for ready the moment it started.
-	minReady := int32(10)
+	minReady = 10
 	if c.Port != nil {
 		minReady = 5 // it also has to be accepting connections
 	}
+	return corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: labels(appID, c.Name)},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{container},
+			// The app's containers have no business talking to the Kubernetes API.
+			AutomountServiceAccountToken: ptr(false),
+		},
+	}, minReady
+}
 
+// volumeName is the claim every stateful container's data lives in (one per container, so the name can be the same).
+const volumeName = "data"
+
+// Deployment runs a stateless container. With autoscaling the replica count belongs to the autoscaler, so it is left
+// out and re-applying a design never fights it.
+func Deployment(appID, deploymentID string, c Container, timeoutSeconds int32) *appsv1.Deployment {
+	tpl, minReady := podTemplate(appID, c)
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,20 +108,46 @@ func Deployment(appID, deploymentID string, c Container, timeoutSeconds int32) *
 			Selector:                &metav1.LabelSelector{MatchLabels: selector(appID, c.Name)},
 			ProgressDeadlineSeconds: &timeoutSeconds,
 			MinReadySeconds:         minReady,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: labels(appID, c.Name)},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{container},
-					// The app's containers have no business talking to the Kubernetes API.
-					AutomountServiceAccountToken: ptr(false),
-				},
-			},
+			Template:                tpl,
 		},
 	}
 	if !c.Autoscaled() {
 		d.Spec.Replicas = ptr(int32(c.Replicas))
 	}
 	return d
+}
+
+// StatefulSet runs a stateful container: one pod with a volume of its own (a claim made from the template, in the
+// cluster's default storage class). The claim is not owned by the StatefulSet, so removing the container keeps the data.
+func StatefulSet(appID, deploymentID string, c Container) *appsv1.StatefulSet {
+	tpl, minReady := podTemplate(appID, c)
+	return &appsv1.StatefulSet{
+		TypeMeta: metav1.TypeMeta{APIVersion: "apps/v1", Kind: "StatefulSet"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: c.Name, Namespace: NamespaceFor(appID), Labels: labels(appID, c.Name),
+			Annotations: map[string]string{annotationDeploy: deploymentID},
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:        ptr(int32(c.Replicas)),
+			ServiceName:     c.Name,
+			Selector:        &metav1.LabelSelector{MatchLabels: selector(appID, c.Name)},
+			MinReadySeconds: minReady,
+			Template:        tpl,
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{{
+				ObjectMeta: metav1.ObjectMeta{Name: volumeName, Labels: labels(appID, c.Name)},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse(c.Volume.Size)},
+					},
+				},
+			}},
+			PersistentVolumeClaimRetentionPolicy: &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+				WhenDeleted: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+				WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
+			},
+		},
+	}
 }
 
 // Service makes the container reachable inside the app by its name, e.g. http://api:8080. Nil if it has no port.

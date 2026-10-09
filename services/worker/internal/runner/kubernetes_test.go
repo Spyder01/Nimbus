@@ -91,3 +91,23 @@ func TestNothingIsRemovedUnlessItWasAUserCancelOfAFirstDeploy(t *testing.T) {
 		}
 	}
 }
+
+// Stopping a first deploy of a stateful container removes it but leaves its data.
+func TestAStoppedStatefulDeployKeepsItsVolume(t *testing.T) {
+	ns := kube.NamespaceFor(appID)
+	core := fake.NewSimpleClientset(
+		&appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: ns}},
+		&corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "data-db-0", Namespace: ns}},
+	)
+	dyn := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+		map[schema.GroupVersionResource]string{{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes"}: "HTTPRouteList"})
+	k := &Kubernetes{deployer: kube.NewDeployer(core, dyn)}
+
+	err := k.stopped(stoppedFor(ErrStopped), slog.Default(), jobs.Job{AppID: appID, Name: "db"}, true, context.Canceled)
+	_ = err
+	sts, _ := core.AppsV1().StatefulSets(ns).List(context.Background(), metav1.ListOptions{})
+	pvc, _ := core.CoreV1().PersistentVolumeClaims(ns).List(context.Background(), metav1.ListOptions{})
+	if len(sts.Items) != 0 || len(pvc.Items) != 1 {
+		t.Errorf("statefulsets=%d claims=%d, want 0 and 1", len(sts.Items), len(pvc.Items))
+	}
+}

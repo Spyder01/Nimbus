@@ -29,13 +29,35 @@ func patchOptions() metav1.PatchOptions {
 
 // Apply creates or updates everything the container needs, in a namespace of its own for the app. Server-side apply
 // makes it safe to repeat: the same design changes nothing, and a changed design changes only what differs. It reports
-// whether the container's Deployment is new, so a cancelled first deploy can be cleaned up.
+// whether the container's workload is new, so a cancelled first deploy can be cleaned up.
 func (d *Deployer) Apply(ctx context.Context, appID, deploymentID string, c Container, timeoutSeconds int32) (created bool, err error) {
 	ns := NamespaceFor(appID)
-	if _, err := d.cs.AppsV1().Deployments(ns).Get(ctx, c.Name, metav1.GetOptions{}); apierrors.IsNotFound(err) {
-		created = true
-	} else if err != nil {
-		return false, fmt.Errorf("looking for %s: %w", describe(c), err)
+	// Which workload kind the container ran as before decides whether it is new. A container whose kind changed has
+	// its old workload removed (the name is the same, and the two kinds can't both own the pods); a stateful one's
+	// data stays.
+	var depErr, stsErr error
+	_, depErr = d.cs.AppsV1().Deployments(ns).Get(ctx, c.Name, metav1.GetOptions{})
+	_, stsErr = d.cs.AppsV1().StatefulSets(ns).Get(ctx, c.Name, metav1.GetOptions{})
+	for _, e := range []error{depErr, stsErr} {
+		if e != nil && !apierrors.IsNotFound(e) {
+			return false, fmt.Errorf("looking for %s: %w", describe(c), e)
+		}
+	}
+	existing, other := stsErr, depErr
+	if !c.Stateful() {
+		existing, other = depErr, stsErr
+	}
+	created = apierrors.IsNotFound(existing)
+	if other == nil {
+		var err error
+		if c.Stateful() {
+			err = d.cs.AppsV1().Deployments(ns).Delete(ctx, c.Name, metav1.DeleteOptions{})
+		} else {
+			err = d.cs.AppsV1().StatefulSets(ns).Delete(ctx, c.Name, metav1.DeleteOptions{})
+		}
+		if err != nil && !apierrors.IsNotFound(err) {
+			return created, fmt.Errorf("replacing the old workload of %s: %w", describe(c), err)
+		}
 	}
 
 	patch := func(what string, obj any, do func(data []byte) error) error {
@@ -56,10 +78,18 @@ func (d *Deployer) Apply(ctx context.Context, appID, deploymentID string, c Cont
 	}); err != nil {
 		return created, err
 	}
-	if err := patch("the deployment", Deployment(appID, deploymentID, c, timeoutSeconds), func(b []byte) error {
-		_, err := d.cs.AppsV1().Deployments(ns).Patch(ctx, c.Name, apply, b, patchOptions())
-		return err
-	}); err != nil {
+	if c.Stateful() {
+		err = patch("the stateful set", StatefulSet(appID, deploymentID, c), func(b []byte) error {
+			_, err := d.cs.AppsV1().StatefulSets(ns).Patch(ctx, c.Name, apply, b, patchOptions())
+			return err
+		})
+	} else {
+		err = patch("the deployment", Deployment(appID, deploymentID, c, timeoutSeconds), func(b []byte) error {
+			_, err := d.cs.AppsV1().Deployments(ns).Patch(ctx, c.Name, apply, b, patchOptions())
+			return err
+		})
+	}
+	if err != nil {
 		return created, err
 	}
 	if svc := Service(appID, c); svc != nil {
@@ -81,7 +111,7 @@ func (d *Deployer) Apply(ctx context.Context, appID, deploymentID string, c Cont
 	return created, nil
 }
 
-// Remove deletes what Apply made for a container (not the namespace, which belongs to the whole app). Missing is fine.
+// Remove deletes what Apply made for a container (not the namespace, which belongs to the whole app, and not a volume). Missing is fine.
 func (d *Deployer) Remove(ctx context.Context, appID, name string) error {
 	ns := NamespaceFor(appID)
 	var firstErr error
@@ -94,5 +124,7 @@ func (d *Deployer) Remove(ctx context.Context, appID, name string) error {
 	keep(d.cs.AutoscalingV2().HorizontalPodAutoscalers(ns).Delete(ctx, name, metav1.DeleteOptions{}))
 	keep(d.cs.CoreV1().Services(ns).Delete(ctx, name, metav1.DeleteOptions{}))
 	keep(d.cs.AppsV1().Deployments(ns).Delete(ctx, name, metav1.DeleteOptions{}))
+	// The volume claim of a stateful container is left alone: its data outlives the container.
+	keep(d.cs.AppsV1().StatefulSets(ns).Delete(ctx, name, metav1.DeleteOptions{}))
 	return firstErr
 }

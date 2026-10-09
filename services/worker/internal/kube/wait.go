@@ -27,7 +27,8 @@ var grace = map[string]time.Duration{
 
 // WaitReady returns nil once the Deployment has rolled out (all replicas updated and available), and an error saying
 // what is wrong if it clearly can't, or doesn't within the timeout. It stops early, with ctx's error, if ctx ends.
-func (d *Deployer) WaitReady(ctx context.Context, appID, name string, timeout time.Duration) error {
+func (d *Deployer) WaitReady(ctx context.Context, appID string, c Container, timeout time.Duration) error {
+	name := c.Name
 	ns := NamespaceFor(appID)
 	deadline := time.NewTimer(timeout)
 	defer deadline.Stop()
@@ -37,14 +38,26 @@ func (d *Deployer) WaitReady(ctx context.Context, appID, name string, timeout ti
 	last := "waiting to start"
 
 	for {
-		dep, err := d.cs.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
+		var done bool
+		var failed, status string
+		var err error
+		if c.Stateful() {
+			var sts *appsv1.StatefulSet
+			if sts, err = d.cs.AppsV1().StatefulSets(ns).Get(ctx, name, metav1.GetOptions{}); err == nil {
+				done, failed, status = statefulStatus(sts)
+			}
+		} else {
+			var dep *appsv1.Deployment
+			if dep, err = d.cs.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{}); err == nil {
+				done, failed, status = rolloutStatus(dep)
+			}
+		}
 		switch {
 		case err != nil && ctx.Err() != nil:
 			return ctx.Err()
 		case err != nil:
-			last = "can't read the deployment: " + err.Error()
+			last = "can't read the workload: " + err.Error()
 		default:
-			done, failed, status := rolloutStatus(dep)
 			if done {
 				return nil
 			}
@@ -109,6 +122,25 @@ func rolloutStatus(d *appsv1.Deployment) (done bool, failed, status string) {
 		return false, "", fmt.Sprintf("%d old replicas are still stopping", d.Status.Replicas-d.Status.UpdatedReplicas)
 	case d.Status.AvailableReplicas < d.Status.UpdatedReplicas:
 		return false, "", fmt.Sprintf("%d of %d replicas available", d.Status.AvailableReplicas, d.Status.UpdatedReplicas)
+	}
+	return true, "", ""
+}
+
+// statefulStatus is the same for a StatefulSet. It has no deadline of its own, so only the caller's timeout and the
+// pods' problems end a rollout that doesn't finish.
+func statefulStatus(s *appsv1.StatefulSet) (done bool, failed, status string) {
+	if s.Generation > s.Status.ObservedGeneration {
+		return false, "", "waiting for the change to be picked up"
+	}
+	want := int32(1)
+	if s.Spec.Replicas != nil {
+		want = *s.Spec.Replicas
+	}
+	switch {
+	case s.Status.UpdatedReplicas < want:
+		return false, "", fmt.Sprintf("%d of %d replicas updated", s.Status.UpdatedReplicas, want)
+	case s.Status.AvailableReplicas < want:
+		return false, "", fmt.Sprintf("%d of %d replicas available", s.Status.AvailableReplicas, want)
 	}
 	return true, "", ""
 }
