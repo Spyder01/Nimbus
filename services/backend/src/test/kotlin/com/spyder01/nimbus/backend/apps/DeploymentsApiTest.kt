@@ -490,4 +490,72 @@ class DeploymentsApiTest(
         call(alice, get("/api/apps/$app/versions/2")).andExpect(status().isNotFound)
         call(alice, get("/api/apps/$app/versions")).andExpect(jsonPath("$.length()").value(51))
     }
+
+    // ---- where public containers can be opened ----
+
+    private fun appJson(app: String) = json.readTree(call(alice, get("/api/apps/$app")).andReturn().response.contentAsString)
+    private fun listJson(app: String) = json.readTree(call(alice, get("/api/apps")).andReturn().response.contentAsString).first { it.get("id").asString() == app }
+    private fun urlsOf(node: tools.jackson.databind.JsonNode): List<String> =
+        node.get("publicUrls").let { urls -> (0 until urls.size()).map { urls.get(it).get("container").asString() + "=" + urls.get(it).get("url").asString() } }
+    private fun completeWithUrl(dep: String, name: String, url: String?) { claim(dep, name); assertTrue(worker.complete(task(dep, name).id!!, "w1", url)) }
+
+    @Test
+    fun `a task records the address it was given when it completes, and only then`() {
+        val dep = deployOk(chain())
+        completeWithUrl(dep, "db", null)
+        completeWithUrl(dep, "api", "http://api-1234abcd.localhost")
+        assertNull(task(dep, "db").url, "a container that isn't public has none")
+        assertEquals("http://api-1234abcd.localhost", task(dep, "api").url)
+
+        val failed = claim(dep, "web")!!
+        assertTrue(worker.fail(failed.id!!, "w1", "boom"))
+        assertNull(task(dep, "web").url, "a failed container has no address")
+    }
+
+    @Test
+    fun `a running app lists where its public containers can be opened, in the list and on the app`() {
+        val app = chain()
+        val dep = deployOk(app)
+        completeWithUrl(dep, "db", null)
+        completeWithUrl(dep, "api", null)
+        assertEquals(emptyList(), urlsOf(listJson(app)), "nothing is shown while it is still deploying")
+        completeWithUrl(dep, "web", "http://web-1234abcd.localhost")
+
+        assertEquals("RUNNING", appState(app))
+        assertEquals(listOf("web=http://web-1234abcd.localhost"), urlsOf(listJson(app)))
+        assertEquals(listOf("web=http://web-1234abcd.localhost"), urlsOf(appJson(app)))
+        // The canvas polls the deployment list, so it has them too.
+        val polled = json.readTree(call(alice, get("/api/apps/$app/deployments")).andReturn().response.contentAsString)
+        assertEquals(listOf("web=http://web-1234abcd.localhost"), urlsOf(polled))
+    }
+
+    @Test
+    fun `only the latest successful deployment's addresses are shown, and none once the app isn't running`() {
+        val app = chain()
+        val first = deployOk(app)
+        completeWithUrl(first, "db", null); completeWithUrl(first, "api", null); completeWithUrl(first, "web", "http://web-old.localhost")
+
+        val second = deployOk(app)
+        assertEquals(emptyList(), urlsOf(listJson(app)), "while a new deployment is under way the app is deploying, not running")
+        completeWithUrl(second, "db", null); completeWithUrl(second, "api", null); completeWithUrl(second, "web", "http://web-new.localhost")
+        assertEquals(listOf("web=http://web-new.localhost"), urlsOf(listJson(app)), "the older deployment's address is gone")
+
+        val third = deployOk(app)
+        val db = claim(third, "db")!!
+        assertTrue(worker.fail(db.id!!, "w1", "boom"))
+        assertEquals("FAILED", appState(app))
+        assertEquals(emptyList(), urlsOf(listJson(app)), "an app whose latest deployment failed shows no addresses")
+        assertEquals(emptyList(), urlsOf(appJson(app)))
+    }
+
+    @Test
+    fun `other people's apps don't show each other's addresses`() {
+        val mine = chain(); val theirs = chain(bob, "theirs")
+        val a = deployOk(mine); val b = run { val id = idOf(deploy(theirs, bob).andExpect(status().isCreated)); id }
+        for (n in listOf("db", "api")) { completeWithUrl(a, n, null); completeWithUrl(b, n, null) }
+        completeWithUrl(a, "web", "http://web-mine.localhost"); completeWithUrl(b, "web", "http://web-theirs.localhost")
+        assertEquals(listOf("web=http://web-mine.localhost"), urlsOf(listJson(mine)))
+        val bobsList = json.readTree(call(bob, get("/api/apps")).andReturn().response.contentAsString)
+        assertEquals(listOf("web=http://web-theirs.localhost"), urlsOf(bobsList.single()))
+    }
 }

@@ -1,5 +1,6 @@
 package com.spyder01.nimbus.backend.configuration
 
+import com.spyder01.nimbus.backend.users.repositories.UserRepository
 import com.spyder01.nimbus.backend.users.services.OAuth2LoginService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -12,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler
+import org.springframework.security.web.context.SecurityContextHolderFilter
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher
@@ -23,9 +25,12 @@ class SecurityConfig {
     fun filterChain(
         http: HttpSecurity,
         oauth2LoginService: OAuth2LoginService,
+        users: UserRepository,
     ): SecurityFilterChain =
         http
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) }
+            // Permissions come from the database on every request, so role changes count straight away.
+            .addFilterAfter(FreshRoleFilter(users), SecurityContextHolderFilter::class.java)
             .authorizeHttpRequests {
                 it.requestMatchers("/actuator/health/**").permitAll()
                     .requestMatchers("/actuator/**", "/api/**").authenticated()

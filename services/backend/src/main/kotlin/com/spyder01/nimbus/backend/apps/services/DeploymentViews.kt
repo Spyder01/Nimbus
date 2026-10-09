@@ -2,11 +2,16 @@ package com.spyder01.nimbus.backend.apps.services
 
 import com.spyder01.nimbus.backend.apps.dto.DeploymentDto
 import com.spyder01.nimbus.backend.apps.dto.DeploymentTaskDto
+import com.spyder01.nimbus.backend.apps.dto.PublicUrlDto
+import com.spyder01.nimbus.backend.apps.entities.App
+import com.spyder01.nimbus.backend.apps.entities.AppState
 import com.spyder01.nimbus.backend.apps.entities.Deployment
+import com.spyder01.nimbus.backend.apps.entities.DeploymentState
 import com.spyder01.nimbus.backend.apps.entities.TaskState
 import com.spyder01.nimbus.backend.apps.repositories.AppSpecRepository
 import com.spyder01.nimbus.backend.apps.repositories.DeploymentTaskRepository
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 class DeploymentViews(
@@ -46,7 +51,7 @@ class DeploymentViews(
                         id = requireNotNull(t.id), nodeId = t.nodeId, name = t.name, ordinal = t.ordinal, layer = t.layer,
                         state = t.state, attempts = t.attempts, error = t.error,
                         dependsOn = t.dependsOn.mapNotNull { names[it] },
-                        startedAt = t.startedAt, finishedAt = t.finishedAt,
+                        startedAt = t.startedAt, finishedAt = t.finishedAt, url = t.url,
                     )
                 },
             )
@@ -54,4 +59,14 @@ class DeploymentViews(
     }
 
     fun toDto(d: Deployment, withTasks: Boolean = false): DeploymentDto = toDtos(listOf(d), withTasks).single()
+
+    /**
+     * Where each running app's public containers can be opened: from its latest successful deployment. An app that is
+     * not running (a draft, or one whose latest deployment failed) shows none, so nobody is sent to a dead address.
+     */
+    fun publicUrls(of: List<App>): Map<UUID, List<PublicUrlDto>> {
+        val running = of.filter { it.state == AppState.RUNNING || it.state == AppState.DEGRADED }.map { requireNotNull(it.id) }
+        if (running.isEmpty()) return emptyMap()
+        return tasks.publicUrls(running, DeploymentState.SUCCEEDED).groupBy({ it.appId }, { PublicUrlDto(it.container, it.url) })
+    }
 }

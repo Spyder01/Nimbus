@@ -100,7 +100,7 @@ class DeploymentService(
     fun list(owner: UUID, appId: UUID): DeploymentList {
         val app = apps.findByIdAndOwnerId(appId, owner) ?: throw appNotFound()
         val rows = deployments.findAllByAppIdOrderByCreatedAtDesc(appId, PageRequest.of(0, HISTORY_LIMIT))
-        return DeploymentList(app.state, views.toDtos(rows))
+        return DeploymentList(app.state, views.toDtos(rows), views.publicUrls(listOf(app))[appId].orEmpty())
     }
 
     @Transactional(readOnly = true)

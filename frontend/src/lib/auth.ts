@@ -8,6 +8,14 @@ export function startOAuth(provider: Provider) {
   window.location.assign(`/oauth2/authorization/${provider}`)
 }
 
+/** Each role can do what the ones before it can: a super admin is also an admin. */
+export type Role = 'USER' | 'ADMIN' | 'SUPER_ADMIN'
+
+export const isAdmin = (me: Me | null) => me?.role === 'ADMIN' || me?.role === 'SUPER_ADMIN'
+export const isSuperAdmin = (me: Me | null) => me?.role === 'SUPER_ADMIN'
+
+export const ROLE_LABEL: Record<Role, string> = { USER: 'Member', ADMIN: 'Admin', SUPER_ADMIN: 'Super admin' }
+
 export interface Me {
   id: string
   name: string | null
@@ -15,7 +23,7 @@ export interface Me {
   avatarUrl: string | null
   // false until the user has saved their profile once (first-login onboarding)
   profileUpdated: boolean
-  role: 'USER' | 'ADMIN'
+  role: Role
 }
 
 // Where a user belongs right now.

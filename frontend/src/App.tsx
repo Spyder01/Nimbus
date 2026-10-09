@@ -7,6 +7,7 @@ import { AppShell } from '@/components/app-shell'
 import { RequireAdmin } from '@/components/require-admin'
 import AdminWorkers from '@/pages/admin/workers'
 import AdminWorkerDetail from '@/pages/admin/worker-detail'
+import AdminMembers from '@/pages/admin/members'
 import Dashboard from '@/pages/dashboard'
 import Landing from '@/pages/landing'
 import Profile from '@/pages/profile'
@@ -36,6 +37,7 @@ export default function App() {
                 <Route index element={<Navigate to="workers" replace />} />
                 <Route path="workers" element={<AdminWorkers />} />
                 <Route path="workers/:name" element={<AdminWorkerDetail />} />
+                <Route path="members" element={<AdminMembers />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

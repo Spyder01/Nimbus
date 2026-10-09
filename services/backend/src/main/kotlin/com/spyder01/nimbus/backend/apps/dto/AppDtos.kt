@@ -23,6 +23,9 @@ data class SaveVersionRequest(val note: String? = null)
 
 data class RestoreVersionRequest(val baseRevision: Long? = null)
 
+/** A public container of a running app, and where it can be opened. */
+data class PublicUrlDto(val container: String, val url: String)
+
 data class AppSummary(
     val id: UUID,
     val name: String,
@@ -32,10 +35,12 @@ data class AppSummary(
     val updatedAt: Instant?,
     /** The queued or running deployment, if any. */
     val activeDeployment: DeploymentDto? = null,
+    /** Where the running app's public containers can be opened; empty unless the app is running. */
+    val publicUrls: List<PublicUrlDto> = emptyList(),
 ) {
     companion object {
-        fun from(app: App, active: DeploymentDto? = null) =
-            AppSummary(requireNotNull(app.id), app.name, app.state, app.componentCount, app.createdAt, app.updatedAt, active)
+        fun from(app: App, active: DeploymentDto? = null, publicUrls: List<PublicUrlDto> = emptyList()) =
+            AppSummary(requireNotNull(app.id), app.name, app.state, app.componentCount, app.createdAt, app.updatedAt, active, publicUrls)
     }
 }
 
@@ -56,6 +61,8 @@ data class AppDetail(
     val draft: DraftDto,
     val activeDeployment: DeploymentDto? = null,
     val latestDeployment: DeploymentDto? = null,
+    /** Where the running app's public containers can be opened; empty unless the app is running. */
+    val publicUrls: List<PublicUrlDto> = emptyList(),
 )
 
 data class VersionSummary(

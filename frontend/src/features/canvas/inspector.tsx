@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Globe, Plus, Trash2, X } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +29,7 @@ interface Props {
 
 export function Inspector({ node, problems, onChange, onDelete, onClose }: Props) {
   const d = node.data
+  const [confirmPublic, setConfirmPublic] = useState(false)
   const stateful = d.kind === 'stateful'
   const autoscale = !stateful && (d.minReplicas != null || d.maxReplicas != null || d.cpuTarget != null)
   const msgs = (field: string) => problems.filter((p) => p.field === field).map((p) => p.message)
@@ -104,7 +114,47 @@ export function Inspector({ node, problems, onChange, onDelete, onClose }: Props
           </Field>
         </div>
 
-        <ToggleRow label="Public" hint="Reachable from the internet" checked={d.expose} onChange={(expose) => onChange({ expose })} />
+        <div className="space-y-2">
+          {/* Turning it on is the one change that opens a container to everyone, so it asks first; turning it off doesn't. */}
+          <ToggleRow label="Public" hint="Gets a web address anyone can open" checked={d.expose} onChange={(expose) => (expose ? setConfirmPublic(true) : onChange({ expose: false }))} />
+          {d.expose && (
+            <p className="text-warn flex items-start gap-1.5 text-xs text-pretty">
+              <Globe className="mt-px size-3.5 shrink-0" />
+              <span>
+                Anyone on the internet can open this container once you deploy. There is no sign-in in front of it.
+                {d.port == null && ' It also needs a port to receive traffic on.'}
+              </span>
+            </p>
+          )}
+        </div>
+        <AlertDialog open={confirmPublic} onOpenChange={setConfirmPublic}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogMedia className="bg-warn/15 text-warn">
+                <Globe />
+              </AlertDialogMedia>
+              <AlertDialogTitle>Make {d.name ? `“${d.name}”` : 'this container'} public?</AlertDialogTitle>
+              <AlertDialogDescription className="text-pretty">
+                When you deploy, it gets a web address that anyone on the internet can open. Nimbus puts no sign-in in front of it, so
+                anything the container serves is visible to everyone. It only works for web traffic, and the container needs a port.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <Button type="button" variant="outline" onClick={() => setConfirmPublic(false)}>
+                Keep it private
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  onChange({ expose: true })
+                  setConfirmPublic(false)
+                }}
+              >
+                Make public
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {!stateful && (
           <div className="space-y-3">

@@ -1,54 +1,45 @@
-# React + TypeScript + Vite
+# Nimbus web application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The user interface: landing and sign-in, the dashboard, the canvas where apps are designed and deployed, settings, and the
+admin pages. Built with React 19, TypeScript, Vite, Tailwind CSS 4, shadcn-style components on Base UI, React Router,
+TanStack Query and React Flow.
 
-Currently, two official plugins are available:
+In production this is built into static files and embedded in the backend, which serves it, so there is one thing to run.
+See the [architecture](../docs/architecture.md#the-web-application) for how it fits in.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Running it
 
-## Expanding the ESLint configuration
+You need Node.js 22. From this folder:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Command | What it does |
+|---|---|
+| `npm ci` | Installs the exact dependencies. |
+| `npm start` | Starts the dev server at http://localhost:5173 with hot reload. |
+| `npm run lint` | Checks the code style. |
+| `npm run build` | Type-checks and builds the production files into `dist/`. |
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+The dev server forwards `/api`, sign-in and logout requests to the backend on port 8080, so the browser sees one address
+and cookies work as they will in production. Start the backend first ([Getting started](../docs/getting-started.md#option-b-run-from-source)).
+Because of that, the GitHub OAuth App used in this mode needs the callback URL on port **5173**.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## How it is organised
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Folder | What is in it |
+|---|---|
+| `src/pages/` | One file per screen: landing, profile, dashboard, the canvas page, settings, and `admin/` (workers, one worker, members). |
+| `src/features/apps/` | Listing, creating, importing and deleting apps; deployment state and the Open links. |
+| `src/features/canvas/` | The editor: nodes and edges, the inspector panel, autosave, version history, deployment progress. |
+| `src/features/images/` | The image catalog: search, the picker beside the image field, and the browse dialog. |
+| `src/features/workers/` | The workers and pools admin: lists, settings forms, status badges. |
+| `src/features/members/` | The members admin: list, search, and changing roles. |
+| `src/components/` | Shared pieces: the app shell and navigation, theme, sign-in buttons, and `ui/` (the base components). |
+| `src/lib/` | Small helpers: the API client, auth and roles, time formatting, downloads. |
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## Conventions worth knowing
+
+- **Server data goes through TanStack Query**, one hook per resource in each feature's `queries` file. Polling is switched on
+  only while something is in progress.
+- **The canvas owns the design once it has loaded.** It never refetches it underneath the person editing; saving is
+  automatic and checked against a revision number.
+- **Theme and colours come from tokens** in `src/index.css` (light and dark), not from fixed colours in components.
+- **Roles gate the admin screens in the UI, but the server is what enforces them.** Hiding a button is a convenience, not security.

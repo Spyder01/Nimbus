@@ -21,11 +21,12 @@ import { Link } from 'react-router'
 import { useTheme } from '@/components/theme-provider'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { PublicLinks } from '@/features/apps/public-links'
 import { templateFromEntry } from '@/features/images/catalog'
 import { ImageBrowser } from '@/features/images/image-browser'
 import { appsKey, useCancelDeployment, useDeploy, useDeployments } from '@/features/apps/queries'
 import { StateBadge } from '@/features/apps/state-badge'
-import { isActive, type AppDetail, type ContainerData, type Deployment, type Draft, type Problem, type SaveVersionResult } from '@/features/apps/types'
+import { isActive, type AppDetail, type ContainerData, type Deployment, type Draft, type Problem, type PublicUrl, type SaveVersionResult } from '@/features/apps/types'
 import { ApiError, request } from '@/lib/api'
 import { downloadText, slug } from '@/lib/download'
 import { cn } from '@/lib/utils'
@@ -74,11 +75,12 @@ function Editor({ app }: { app: AppDetail }) {
   const deploy = useDeploy(app.id)
   const cancel = useCancelDeployment(app.id)
   const seed = [app.activeDeployment, app.latestDeployment].filter((d, i, a): d is Deployment => !!d && a.findIndex((x) => x?.id === d.id) === i)
-  const deployments = useDeployments(app.id, { appState: app.state, deployments: seed })
+  const deployments = useDeployments(app.id, { appState: app.state, deployments: seed, publicUrls: app.publicUrls })
   const deploymentList = deployments.data?.deployments ?? []
   const active = deploymentList.find(isActive) ?? null
   const latest = deploymentList[0] ?? null
   const appState = deployments.data?.appState ?? app.state
+  const publicUrls = deployments.data?.publicUrls ?? []
   const locked = !!active // the design can't be edited while a deployment is queued or running
   const [deployError, setDeployError] = useState<{ message: string; problems?: Problem[] } | null>(null)
   const [dismissed, setDismissed] = useState<string[]>([])
@@ -211,6 +213,7 @@ function Editor({ app }: { app: AppDetail }) {
         </Link>
         <RenameTitle appId={app.id} name={name} onRenamed={setName} />
         <StateBadge state={appState} deployment={active} className="hidden sm:inline-flex" />
+        <PublicLinks urls={publicUrls} className="hidden sm:inline-flex" />
         <SaveIndicator status={autosave.status} error={autosave.error} notice={notice} onRetry={() => void autosave.retry()} />
 
         <div className="ml-auto flex items-center gap-2">
@@ -301,6 +304,7 @@ function Editor({ app }: { app: AppDetail }) {
       {latest && !active && !dismissed.includes(latest.id) && (latest.state === 'FAILED' || latest.id === finishedId) && (
         <ResultBanner
           deployment={latest}
+          publicUrls={publicUrls}
           onDeployAgain={() => void deployNow()}
           onDismiss={() => setDismissed((d) => [...d, latest.id])}
         />
@@ -448,7 +452,7 @@ function EmptyHint({ onPick, onBrowse }: { onPick: (t: Template) => void; onBrow
   )
 }
 
-function ResultBanner({ deployment, onDeployAgain, onDismiss }: { deployment: Deployment; onDeployAgain: () => void; onDismiss: () => void }) {
+function ResultBanner({ deployment, publicUrls, onDeployAgain, onDismiss }: { deployment: Deployment; publicUrls: PublicUrl[]; onDeployAgain: () => void; onDismiss: () => void }) {
   const failed = deployment.state === 'FAILED'
   const ok = deployment.state === 'SUCCEEDED'
   return (
@@ -467,6 +471,7 @@ function ResultBanner({ deployment, onDeployAgain, onDismiss }: { deployment: De
             ? `Version ${deployment.versionRevision ?? '?'} deployed.`
             : 'Deployment cancelled.'}
       </span>
+      {ok && <PublicLinks urls={publicUrls} />}
       {failed && (
         <Button size="sm" variant="outline" onClick={onDeployAgain}>
           Deploy again

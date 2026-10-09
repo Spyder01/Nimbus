@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { relativeTime, settingText, StatusBadge, SyncBadge } from '@/features/workers/parts'
 import { useReplaceWorkerSettings, useWorker } from '@/features/workers/queries'
-import { LIMITS, type SettingValues, type Worker } from '@/features/workers/types'
+import { SettingsFields } from '@/features/workers/settings-fields'
+import { saveProblems, useSettingsFields } from '@/features/workers/use-settings-fields'
+import type { SettingValues, Worker } from '@/features/workers/types'
 import { ApiError } from '@/lib/api'
 
 export default function AdminWorkerDetailPage() {
@@ -141,22 +141,7 @@ function SettingRow({ label, field, unit, s }: { label: string; field: keyof Set
 
 // ---- editing this worker's own settings ----
 
-function parse(text: string, min: number, max: number, what: string): { value: number | null; error?: string } {
-  const t = text.trim()
-  if (t === '') return { value: null }
-  if (!/^\d+$/.test(t)) return { value: null, error: `${what} must be a whole number` }
-  const n = Number(t)
-  if (n < min || n > max) return { value: null, error: `${what} must be between ${min} and ${max}` }
-  return { value: n }
-}
-
 function SettingsForm({ worker: w }: { worker: Worker }) {
-  const o = w.settings.override
-  // Starts again from the server's values whenever they change (after a save), but not on every poll.
-  return <FormBody key={`${o.parallelJobs}|${o.leaseSeconds}|${w.settings.overrideUpdatedAt}`} worker={w} />
-}
-
-function FormBody({ worker: w }: { worker: Worker }) {
   // The page renders after the data arrives, so the browser can't scroll to #settings by itself.
   const { hash } = useLocation()
   useEffect(() => {
@@ -164,25 +149,26 @@ function FormBody({ worker: w }: { worker: Worker }) {
   }, [hash])
   const save = useReplaceWorkerSettings(w.name)
   const own = w.settings.override
-  const [jobs, setJobs] = useState(own.parallelJobs?.toString() ?? '')
-  const [lease, setLease] = useState(own.leaseSeconds?.toString() ?? '')
+  const fields = useSettingsFields(own)
   const [message, setMessage] = useState<string | null>(null)
-
-  const pj = parse(jobs, LIMITS.parallelJobs.min, LIMITS.parallelJobs.max, 'Parallel jobs')
-  const ls = parse(lease, LIMITS.leaseSeconds.min, LIMITS.leaseSeconds.max, 'Lease length')
-  const unchanged = pj.value === own.parallelJobs && ls.value === own.leaseSeconds && !pj.error && !ls.error
 
   function submit(e: React.FormEvent, values?: { parallelJobs: number | null; leaseSeconds: number | null }) {
     e.preventDefault()
-    const body = values ?? { parallelJobs: pj.value, leaseSeconds: ls.value }
-    if (!values && (pj.error || ls.error)) return
+    if (!values && !fields.valid) return
     setMessage(null)
-    save.mutate(body, {
-      onSuccess: () => setMessage('Saved. The worker applies it on its next heartbeat, within about 10 seconds.'),
+    save.mutate(values ?? fields.values, {
+      onSuccess: () => {
+        setMessage('Saved. The worker applies it on its next heartbeat, within about 10 seconds.')
+        // Resetting leaves nothing to show: empty the inputs too, so they match what is stored.
+        if (values) {
+          fields.setJobs('')
+          fields.setLease('')
+        }
+      },
     })
   }
 
-  const apiProblems = save.error instanceof ApiError ? ((save.error.body?.errors as { message: string }[] | undefined) ?? []) : []
+  const apiProblems = saveProblems(save.error)
 
   return (
     <form id="settings" onSubmit={submit} noValidate className="border-border bg-card mt-6 scroll-mt-6 rounded-2xl border p-6">
@@ -191,37 +177,13 @@ function FormBody({ worker: w }: { worker: Worker }) {
         Leave a field empty to inherit it from the pool. These apply to <span className="font-mono">{w.name}</span> only, and stay with the name when the worker restarts.
       </p>
 
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <div className="grid gap-1.5">
-          <Label htmlFor="parallel-jobs">Parallel jobs</Label>
-          <Input
-            id="parallel-jobs"
-            inputMode="numeric"
-            className="h-10"
-            placeholder={settingText(w.settings.poolDefault.parallelJobs, '', 'worker default')}
-            value={jobs}
-            onChange={(e) => setJobs(e.target.value)}
-            aria-invalid={!!pj.error}
-          />
-          <p className={pj.error ? 'text-destructive text-xs' : 'text-muted-foreground text-xs'}>
-            {pj.error ?? `${LIMITS.parallelJobs.min}–${LIMITS.parallelJobs.max}. Lowering it doesn't stop jobs that are already running.`}
-          </p>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="lease-seconds">Lease length (seconds)</Label>
-          <Input
-            id="lease-seconds"
-            inputMode="numeric"
-            className="h-10"
-            placeholder={settingText(w.settings.poolDefault.leaseSeconds, '', 'worker default')}
-            value={lease}
-            onChange={(e) => setLease(e.target.value)}
-            aria-invalid={!!ls.error}
-          />
-          <p className={ls.error ? 'text-destructive text-xs' : 'text-muted-foreground text-xs'}>
-            {ls.error ?? `${LIMITS.leaseSeconds.min}–${LIMITS.leaseSeconds.max}. Applies to jobs claimed after the change.`}
-          </p>
-        </div>
+      <div className="mt-5">
+        <SettingsFields
+          fields={fields}
+          idPrefix="worker"
+          jobsPlaceholder={settingText(w.settings.poolDefault.parallelJobs, '', 'worker default')}
+          leasePlaceholder={settingText(w.settings.poolDefault.leaseSeconds, '', 'worker default')}
+        />
       </div>
 
       {save.isError && (
@@ -230,7 +192,7 @@ function FormBody({ worker: w }: { worker: Worker }) {
           {apiProblems.length > 0 && (
             <ul className="mt-1 list-disc pl-5 text-xs">
               {apiProblems.map((p, i) => (
-                <li key={i}>{p.message}</li>
+                <li key={i}>{p}</li>
               ))}
             </ul>
           )}
@@ -243,7 +205,7 @@ function FormBody({ worker: w }: { worker: Worker }) {
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={save.isPending || unchanged || !!pj.error || !!ls.error}>
+        <Button type="submit" disabled={save.isPending || !fields.valid || fields.unchangedFrom(own)}>
           {save.isPending && <Loader2 className="animate-spin" />}
           Save changes
         </Button>

@@ -61,3 +61,16 @@ data class WorkerSettingsDto(
     val pool: String,
     val settings: WorkerSettingsView,
 )
+
+/** A group of workers that share default settings. */
+data class PoolDto(
+    val name: String,
+    val workers: Int,
+    val online: Int,
+    /** How many of its workers have a value of their own, and so ignore the default for that setting. */
+    val overriding: Int,
+    /** What workers without their own value use. A null means each worker's own startup value applies. */
+    val defaults: SettingValues,
+    val updatedAt: Instant?,
+    val updatedBy: UUID?,
+)

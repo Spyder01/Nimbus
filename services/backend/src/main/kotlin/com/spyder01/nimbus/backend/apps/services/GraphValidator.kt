@@ -22,6 +22,8 @@ class GraphValidator {
         private const val MAX_ERRORS = 20
         private val ID = Regex("^[A-Za-z0-9_-]{1,64}$")
         private val KINDS = setOf("stateless", "stateful")
+        /** 63 (a DNS label) minus "-" and the 8 characters of the app id that make the address unique. */
+        const val MAX_PUBLIC_NAME = 54
         private val DNS_LABEL = Regex("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
         private val ENV_KEY = Regex("^[A-Za-z_][A-Za-z0-9_]*$")
         private val QUANTITY = Regex("^[1-9][0-9]*(Mi|Gi|Ti)$")
@@ -102,6 +104,11 @@ class GraphValidator {
             if (d.image.isBlank()) problem("image", "Enter an image, e.g. nginx:1.27")
             if (d.port != null && d.port !in 1..65535) problem("port", "Port must be between 1 and 65535")
             if (d.replicas < 1) problem("replicas", "Run at least one replica")
+            if (d.expose) {
+                if (d.port == null) problem("port", "A public container needs a port to receive traffic on")
+                // Its address is "<name>-<8 characters of the app id>" followed by the cluster's domain, and one DNS label holds 63.
+                if (name.length > MAX_PUBLIC_NAME) problem("name", "A public container's name can be at most $MAX_PUBLIC_NAME characters, since its web address is built from it")
+            }
 
             val autoscale = d.minReplicas != null || d.maxReplicas != null || d.cpuTarget != null
             if (d.minReplicas != null && d.maxReplicas != null && d.minReplicas > d.maxReplicas)

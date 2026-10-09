@@ -1,0 +1,95 @@
+# Runs Nimbus from its published images: Postgres, Redis, the backend (which serves the web UI) and three workers.
+#
+#   cp .env.example .env        # then fill in the values marked REQUIRED
+#   docker compose up -d
+#   open http://localhost:8080
+#
+# See docs/running-with-docker.md for what each setting means, how to scale workers, and how to deploy to a real
+# cluster instead of the default stand-in runner.
+
+name: nimbus
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nimbus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-nimbus}
+      # A subfolder, so the volume's own top-level folder never gets in the way of initialising the database.
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - nimbus-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - nimbus-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    image: ${BACKEND_IMAGE:-${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME (or BACKEND_IMAGE) in deploy/.env}/nimbus-backend:${NIMBUS_TAG:-latest}}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-nimbus}
+      POSTGRES_USER: ${POSTGRES_USER:-nimbus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Sessions live in Redis, so signed-in users survive a backend restart.
+      REDIS_ENABLED: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?Set GITHUB_CLIENT_ID in deploy/.env (see docs/getting-started.md)}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?Set GITHUB_CLIENT_SECRET in deploy/.env}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      # The image has no curl or wget, but it has bash, which can open a TCP connection by itself.
+      test: ["CMD", "bash", "-c", 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3 && head -n 1 <&3 | grep -q " 200 "']
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  # Workers claim deployment jobs from the database. Run as many as you like: each takes the next free name
+  # (default-0, default-1, ...) and keeps it across restarts. The backend creates the database tables, so they wait for it.
+  worker:
+    image: ${WORKER_IMAGE:-${DOCKERHUB_USERNAME:?Set DOCKERHUB_USERNAME (or WORKER_IMAGE) in deploy/.env}/nimbus-worker:${NIMBUS_TAG:-latest}}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      replicas: ${WORKER_REPLICAS:-3}
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-nimbus}
+      POSTGRES_USER: ${POSTGRES_USER:-nimbus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      WORKER_POOL: ${WORKER_POOL:-default}
+      WORKER_PARALLEL_JOBS: ${WORKER_PARALLEL_JOBS:-4}
+      # "fake" only pretends to deploy. Add docker-compose.kubernetes.yml to deploy to a real cluster.
+      WORKER_RUNNER: ${WORKER_RUNNER:-fake}
+
+volumes:
+  nimbus-postgres:
+  nimbus-redis:

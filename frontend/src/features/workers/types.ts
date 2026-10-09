@@ -49,3 +49,16 @@ export const LIMITS = {
   parallelJobs: { min: 1, max: 100 },
   leaseSeconds: { min: 60, max: 86400 },
 } as const
+
+/** A group of workers that share default settings. */
+export interface Pool {
+  name: string
+  workers: number
+  online: number
+  /** How many of its workers have a value of their own, and so ignore the default for that setting. */
+  overriding: number
+  /** What workers without their own value use; a null means each worker's own startup value applies. */
+  defaults: SettingValues
+  updatedAt: string | null
+  updatedBy: string | null
+}

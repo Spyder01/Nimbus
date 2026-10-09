@@ -37,7 +37,7 @@ const (
 	//   - once nothing is running or waiting, the deployment ends and the app's state follows.
 	queryEndTask = `
 		UPDATE deployment_tasks
-		SET state = $2, finished_at = clock_timestamp(), error = COALESCE($3, error)
+		SET state = $2, finished_at = clock_timestamp(), error = COALESCE($3, error), url = $4
 		WHERE id = $1::uuid`
 
 	queryAbort = `UPDATE deployments SET abort_requested_at = clock_timestamp() WHERE id = $1::uuid AND abort_requested_at IS NULL`
@@ -126,17 +126,18 @@ func Heartbeat(ctx context.Context, pool *pgxpool.Pool, taskID, workerID string)
 }
 
 // Complete records that the worker finished the job. Containers that were waiting for it become ready, and when it was
-// the last one the deployment succeeds and the app is RUNNING. It returns false, with no error, if the worker no
-// longer holds the job (its lease ran out, or it was taken back): then nothing is changed.
-func Complete(ctx context.Context, pool *pgxpool.Pool, taskID, workerID string) (bool, error) {
-	return finish(ctx, pool, taskID, workerID, "SUCCEEDED", nil, false)
+// the last one the deployment succeeds and the app is RUNNING. url is where the container can be opened from outside
+// the cluster ("" if it isn't public). It returns false, with no error, if the worker no longer holds the job (its
+// lease ran out, or it was taken back): then nothing is changed.
+func Complete(ctx context.Context, pool *pgxpool.Pool, taskID, workerID, url string) (bool, error) {
+	return finish(ctx, pool, taskID, workerID, "SUCCEEDED", nil, false, url)
 }
 
 // Fail records that the job failed for good. The rest of the deployment is abandoned: containers that hadn't started
 // are cancelled, running ones are told to stop at their next heartbeat, and the deployment ends FAILED once nothing is
 // running. Returns false if the worker no longer holds the job.
 func Fail(ctx context.Context, pool *pgxpool.Pool, taskID, workerID, reason string) (bool, error) {
-	return finish(ctx, pool, taskID, workerID, "FAILED", &reason, true)
+	return finish(ctx, pool, taskID, workerID, "FAILED", &reason, true, "")
 }
 
 // AcknowledgeStop records that the worker stopped the job because a heartbeat said to: the task becomes CANCELLED, work
@@ -144,10 +145,10 @@ func Fail(ctx context.Context, pool *pgxpool.Pool, taskID, workerID, reason stri
 // Returns false if the worker no longer holds the job.
 func AcknowledgeStop(ctx context.Context, pool *pgxpool.Pool, taskID, workerID string) (bool, error) {
 	reason := "Stopped"
-	return finish(ctx, pool, taskID, workerID, "CANCELLED", &reason, false)
+	return finish(ctx, pool, taskID, workerID, "CANCELLED", &reason, false, "")
 }
 
-func finish(ctx context.Context, pool *pgxpool.Pool, taskID, workerID, state string, reason *string, abort bool) (bool, error) {
+func finish(ctx context.Context, pool *pgxpool.Pool, taskID, workerID, state string, reason *string, abort bool, url string) (bool, error) {
 	tx, deploymentID, err := lockForTask(ctx, pool, taskID)
 	if err != nil || tx == nil {
 		return false, err
@@ -158,7 +159,11 @@ func finish(ctx context.Context, pool *pgxpool.Pool, taskID, workerID, state str
 	if err != nil || !holds {
 		return false, err
 	}
-	if _, err := tx.Exec(ctx, queryEndTask, taskID, state, reason); err != nil {
+	var publicURL *string // null unless there is one
+	if url != "" {
+		publicURL = &url
+	}
+	if _, err := tx.Exec(ctx, queryEndTask, taskID, state, reason, publicURL); err != nil {
 		return false, fmt.Errorf("ending job: %w", err)
 	}
 	if abort {

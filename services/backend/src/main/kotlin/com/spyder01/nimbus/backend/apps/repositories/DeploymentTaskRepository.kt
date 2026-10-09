@@ -1,5 +1,6 @@
 package com.spyder01.nimbus.backend.apps.repositories
 
+import com.spyder01.nimbus.backend.apps.entities.DeploymentState
 import com.spyder01.nimbus.backend.apps.entities.DeploymentTask
 import com.spyder01.nimbus.backend.apps.entities.TaskState
 import org.springframework.data.domain.Pageable
@@ -12,6 +13,13 @@ interface TaskCount {
     val deploymentId: UUID
     val state: TaskState
     val n: Long
+}
+
+/** A public container of an app's latest successful deployment. */
+interface PublicUrlRow {
+    val appId: UUID
+    val container: String
+    val url: String
 }
 
 interface DeploymentTaskRepository : JpaRepository<DeploymentTask, UUID> {
@@ -36,4 +44,13 @@ interface DeploymentTaskRepository : JpaRepository<DeploymentTask, UUID> {
     /** Candidates only; staleness is re-checked once the app is locked. */
     @Query("select t.id from DeploymentTask t where t.state = :state and (t.leaseExpiresAt <= :now or t.leaseUpdatedAt < :staleBefore)")
     fun staleIds(state: TaskState, now: Instant, staleBefore: Instant): List<UUID>
+
+    /** Where each app's public containers can be opened: the tasks of its latest deployment in [succeeded] state. */
+    @Query(
+        "select d.appId as appId, t.name as container, t.url as url from DeploymentTask t, Deployment d " +
+            "where d.id = t.deploymentId and d.appId in :appIds and d.state = :succeeded and t.url is not null " +
+            "and d.createdAt = (select max(d2.createdAt) from Deployment d2 where d2.appId = d.appId and d2.state = :succeeded) " +
+            "order by t.ordinal",
+    )
+    fun publicUrls(appIds: Collection<UUID>, succeeded: DeploymentState): List<PublicUrlRow>
 }

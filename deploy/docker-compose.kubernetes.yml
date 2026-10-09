@@ -1,0 +1,27 @@
+# Makes the workers deploy users' apps to a real Kubernetes cluster, by adding this file to the base one:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.kubernetes.yml up -d
+#
+# The workers need a kubeconfig they can use from inside a container (see docs/running-with-docker.md). For a local
+# kind cluster that is `kind get kubeconfig --internal`, and the workers join kind's Docker network to reach it.
+
+services:
+  worker:
+    environment:
+      WORKER_RUNNER: kubernetes
+      WORKER_KUBECONFIG: /etc/nimbus/kubeconfig
+      # Always named, never "whatever is current": a kubeconfig can hold several clusters.
+      WORKER_KUBE_CONTEXT: ${KUBE_CONTEXT:?Set KUBE_CONTEXT in deploy/.env to the context to deploy to}
+      # Needed only for public containers (see docs/architecture.md, "Public access").
+      WORKER_BASE_DOMAIN: ${WORKER_BASE_DOMAIN:-}
+      WORKER_GATEWAY: ${WORKER_GATEWAY:-}
+    volumes:
+      - ${KUBECONFIG_FILE:?Set KUBECONFIG_FILE in deploy/.env to the kubeconfig the workers should use}:/etc/nimbus/kubeconfig:ro
+    networks:
+      - default
+      - kind
+
+networks:
+  kind:
+    name: ${KIND_NETWORK:-kind}
+    external: true

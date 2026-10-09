@@ -87,6 +87,15 @@ func main() {
 	slog.Info("worker ready", "worker_name", member.Name(), "pool", cfg.Pool,
 		"parallel_jobs", config.ParallelJobs(), "lease_seconds", int(config.LeaseDuration().Seconds()))
 
+	rn, runnerDesc, err := runner.FromEnv()
+	if err != nil {
+		slog.Error("could not set up the job runner", "error", err)
+		member.Leave()
+		pool.Close() // os.Exit skips deferred calls
+		os.Exit(1)
+	}
+	slog.Info("job runner", "runner", runnerDesc)
+
 	var wg sync.WaitGroup
 	var httpErr error // written by the goroutine below, read only after wg.Wait()
 	wg.Add(3)
@@ -102,7 +111,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		defer cancel()
-		runWorker(ctx, pool, member)
+		runWorker(ctx, pool, member, rn)
 	}()
 
 	// 3. Keeps the worker's slot alive and its settings current. Separate from the loop above so a slow claim can't
@@ -168,7 +177,7 @@ func serveHTTP(ctx context.Context, pool *pgxpool.Pool) error {
 	return nil
 }
 
-func runWorker(ctx context.Context, pool *pgxpool.Pool, member *membership.Membership) {
+func runWorker(ctx context.Context, pool *pgxpool.Pool, member *membership.Membership, rn runner.Runner) {
 	workerID := config.Get().WorkerID
 	slog.Info("worker loop started", "interval", pollInterval)
 	var held sync.WaitGroup
@@ -188,14 +197,14 @@ func runWorker(ctx context.Context, pool *pgxpool.Pool, member *membership.Membe
 				slog.Warn("not claiming: the worker is not registered right now")
 				continue
 			}
-			claimJob(ctx, pool, workerID, &held)
+			claimJob(ctx, pool, workerID, rn, &held)
 		}
 	}
 }
 
 // claimJob tries to claim the oldest ready job. A failure is logged and the loop carries on: the database may
 // be briefly unreachable, and the next tick tries again.
-func claimJob(ctx context.Context, pool *pgxpool.Pool, workerID string, held *sync.WaitGroup) {
+func claimJob(ctx context.Context, pool *pgxpool.Pool, workerID string, rn runner.Runner, held *sync.WaitGroup) {
 	// Both settings are read now, so a PUT /config applies from the next claim.
 	job, ok, err := jobs.ClaimNext(ctx, pool, workerID, config.LeaseDuration(), config.ParallelJobs())
 	switch {
@@ -212,7 +221,7 @@ func claimJob(ctx context.Context, pool *pgxpool.Pool, workerID string, held *sy
 		held.Add(1)
 		go func() {
 			defer held.Done()
-			holdJob(ctx, pool, workerID, job)
+			holdJob(ctx, pool, workerID, rn, job)
 		}()
 	}
 }
@@ -223,17 +232,28 @@ func claimJob(ctx context.Context, pool *pgxpool.Pool, workerID string, held *sy
 //   - the deployment is cancelled: jobCtx is cancelled so the job stops, and that is acknowledged;
 //   - the lease is lost or runs out: the job is stopped and nothing is reported (it isn't ours any more);
 //   - the worker shuts down: the job is stopped and the lease is left for the backend to take back.
-func holdJob(ctx context.Context, pool *pgxpool.Pool, workerID string, job jobs.Job) {
+func holdJob(ctx context.Context, pool *pgxpool.Pool, workerID string, rn runner.Runner, job jobs.Job) {
 	log := slog.With("job_id", job.ID, "name", job.Name, "deployment_id", job.DeploymentID)
-	jobCtx, stopJob := context.WithDeadline(ctx, job.LeaseExpiresAt) // the lease can't be renewed past its fixed expiry
-	defer stopJob()
+	// The lease can't be renewed past its fixed expiry. The cause says why the job stopped: only a user's cancel
+	// (runner.ErrStopped) lets a runner undo what it started.
+	deadlineCtx, cancelDeadline := context.WithDeadline(ctx, job.LeaseExpiresAt)
+	defer cancelDeadline()
+	jobCtx, stopJob := context.WithCancelCause(deadlineCtx)
+	defer stopJob(nil)
 
-	finished := make(chan error, 1)
-	go func() { finished <- runner.Run(jobCtx, job) }()
+	type outcome struct {
+		result runner.Result
+		err    error
+	}
+	finished := make(chan outcome, 1)
+	go func() {
+		res, err := rn.Run(jobCtx, job)
+		finished <- outcome{res, err}
+	}()
 	ran := false
 	defer func() {
 		if !ran { // make sure the job has really stopped before this returns
-			stopJob()
+			stopJob(nil)
 			<-finished
 		}
 	}()
@@ -257,11 +277,12 @@ func holdJob(ctx context.Context, pool *pgxpool.Pool, workerID string, job jobs.
 	defer ticker.Stop()
 	for {
 		select {
-		case err := <-finished:
+		case out := <-finished:
 			ran = true
+			err := out.err
 			switch {
 			case err == nil:
-				report(func(c context.Context) (bool, error) { return jobs.Complete(c, pool, job.ID, workerID) }, "finished")
+				report(func(c context.Context) (bool, error) { return jobs.Complete(c, pool, job.ID, workerID, out.result.URL) }, "finished")
 			case jobCtx.Err() != nil:
 				// It was stopped from outside (lease ran out, or shutdown): the job isn't ours to report on.
 				log.Warn("the job was stopped before it finished")
@@ -288,7 +309,7 @@ func holdJob(ctx context.Context, pool *pgxpool.Pool, workerID string, job jobs.
 			log.Warn("the job is no longer ours (taken back or ended); stopping")
 			return
 		case beat.StopRequested:
-			stopJob() // the job stops here
+			stopJob(runner.ErrStopped) // the job stops here
 			<-finished
 			ran = true
 			report(func(c context.Context) (bool, error) { return jobs.AcknowledgeStop(c, pool, job.ID, workerID) }, "was stopped because the deployment was cancelled")

@@ -79,8 +79,9 @@ class DeploymentWorkerService(
         return Heartbeat(true, l.deployment.cancelRequestedAt != null || l.deployment.abortRequestedAt != null)
     }
 
+    /** The container is up. [url] is where it can be opened from outside the cluster, if it is public. */
     @Transactional
-    fun complete(taskId: UUID, workerId: String): Boolean = finish(taskId, workerId, TaskState.SUCCEEDED, null, abort = false)
+    fun complete(taskId: UUID, workerId: String, url: String? = null): Boolean = finish(taskId, workerId, TaskState.SUCCEEDED, null, abort = false, url = url)
 
     /** The task failed for good; the rest of the deployment is abandoned. */
     @Transactional
@@ -125,10 +126,11 @@ class DeploymentWorkerService(
         return handled
     }
 
-    private fun finish(taskId: UUID, workerId: String, to: TaskState, error: String?, abort: Boolean): Boolean {
+    private fun finish(taskId: UUID, workerId: String, to: TaskState, error: String?, abort: Boolean, url: String? = null): Boolean {
         val (l, t) = lifecycle.lockForTask(taskId) ?: return false
         if (!holds(t, workerId)) return false
         end(t, to, error)
+        if (to == TaskState.SUCCEEDED) t.url = url
         if (abort && l.deployment.abortRequestedAt == null) l.deployment.abortRequestedAt = clock.instant()
         lifecycle.settle(l)
         return true

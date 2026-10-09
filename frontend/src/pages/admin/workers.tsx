@@ -1,14 +1,17 @@
-import { Pencil, Server } from 'lucide-react'
+import { useState } from 'react'
+import { Pencil, Server, SlidersHorizontal } from 'lucide-react'
 import { Link } from 'react-router'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useWorkers } from '@/features/workers/queries'
+import { PoolDefaultsDialog } from '@/features/workers/pool-defaults-dialog'
+import { usePools, useWorkers } from '@/features/workers/queries'
 import { effectiveJobs, relativeTime, StatusBadge, SyncBadge } from '@/features/workers/parts'
-import type { Worker } from '@/features/workers/types'
+import type { Pool, Worker } from '@/features/workers/types'
 import { ApiError } from '@/lib/api'
 
 export default function AdminWorkersPage() {
   const workers = useWorkers()
+  const pools = usePools()
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -18,24 +21,30 @@ export default function AdminWorkersPage() {
       </p>
 
       <div className="mt-8">
-        {workers.isPending ? (
+        {workers.isPending || pools.isPending ? (
           <Loading />
-        ) : workers.isError ? (
-          <ErrorState error={workers.error} onRetry={() => workers.refetch()} />
-        ) : workers.data.length === 0 ? (
+        ) : workers.isError || pools.isError ? (
+          <ErrorState
+            error={(workers.error ?? pools.error) as Error}
+            onRetry={() => {
+              void workers.refetch()
+              void pools.refetch()
+            }}
+          />
+        ) : workers.data.length === 0 && pools.data.length === 0 ? (
           <EmptyState />
         ) : (
-          <Pools workers={workers.data} />
+          <Pools workers={workers.data} pools={pools.data} />
         )}
       </div>
     </div>
   )
 }
 
-function Pools({ workers }: { workers: Worker[] }) {
+function Pools({ workers, pools }: { workers: Worker[]; pools: Pool[] }) {
+  const [editing, setEditing] = useState<string | null>(null)
   const online = workers.filter((w) => w.status === 'ONLINE').length
   const jobs = workers.reduce((sum, w) => sum + w.heldJobs, 0)
-  const pools = [...new Set(workers.map((w) => w.pool))]
 
   return (
     <div className="space-y-8">
@@ -46,10 +55,22 @@ function Pools({ workers }: { workers: Worker[] }) {
       </dl>
 
       {pools.map((pool) => (
-        <section key={pool} aria-labelledby={`pool-${pool}`}>
-          <h2 id={`pool-${pool}`} className="text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase">
-            Pool <span className="text-foreground font-mono normal-case">{pool}</span>
-          </h2>
+        <section key={pool.name} aria-labelledby={`pool-${pool.name}`}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <h2 id={`pool-${pool.name}`} className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              Pool <span className="text-foreground font-mono normal-case">{pool.name}</span>
+            </h2>
+            <div className="flex items-center gap-3">
+              <p className="text-muted-foreground text-xs">
+                <span className="font-medium">Default</span>{' '}
+                {poolDefaultText(pool)}
+                {pool.overriding > 0 && ` · ${pool.overriding} ${pool.overriding === 1 ? 'worker overrides' : 'workers override'}`}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setEditing(pool.name)} aria-label={`Edit defaults for pool ${pool.name}`}>
+                <SlidersHorizontal /> Edit defaults
+              </Button>
+            </div>
+          </div>
           <div className="card-surface overflow-x-auto rounded-2xl">
             <table className="w-full min-w-[50rem] text-sm">
               <thead>
@@ -64,8 +85,15 @@ function Pools({ workers }: { workers: Worker[] }) {
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
+                {pool.workers === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-muted-foreground px-4 py-6 text-center text-sm">
+                      No workers in this pool right now. Its defaults apply when one joins.
+                    </td>
+                  </tr>
+                )}
                 {workers
-                  .filter((w) => w.pool === pool)
+                  .filter((w) => w.pool === pool.name)
                   .map((w) => (
                     <tr key={w.name} className="hover:bg-muted/40 transition-colors">
                       <td className="px-4 py-3">
@@ -102,8 +130,19 @@ function Pools({ workers }: { workers: Worker[] }) {
           </div>
         </section>
       ))}
+
+      <PoolDefaultsDialog pool={pools.find((p) => p.name === editing) ?? null} onClose={() => setEditing(null)} />
     </div>
   )
+}
+
+/** "8 parallel jobs · lease 600 s", or "not set" when each worker uses what it started with. */
+function poolDefaultText(pool: Pool): string {
+  const parts = [
+    pool.defaults.parallelJobs != null && `${pool.defaults.parallelJobs} parallel jobs`,
+    pool.defaults.leaseSeconds != null && `lease ${pool.defaults.leaseSeconds} s`,
+  ].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : 'not set'
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

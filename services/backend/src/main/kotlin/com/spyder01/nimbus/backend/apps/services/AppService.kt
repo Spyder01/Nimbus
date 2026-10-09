@@ -45,9 +45,10 @@ class AppService(
     fun list(owner: UUID): List<AppSummary> {
         val all = apps.findAllByOwnerIdOrderByUpdatedAtDesc(owner)
         if (all.isEmpty()) return emptyList()
-        val active = views.toDtos(deployments.findAllByAppIdInAndStateIn(all.map { requireNotNull(it.id) }, DeploymentState.ACTIVE))
-            .associateBy { it.appId }
-        return all.map { AppSummary.from(it, active[it.id]) }
+        val ids = all.map { requireNotNull(it.id) }
+        val active = views.toDtos(deployments.findAllByAppIdInAndStateIn(ids, DeploymentState.ACTIVE)).associateBy { it.appId }
+        val urls = views.publicUrls(all)
+        return all.map { AppSummary.from(it, active[it.id], urls[it.id].orEmpty()) }
     }
 
     @Transactional
@@ -222,6 +223,7 @@ class AppService(
         return AppDetail(
             appId, app.name, app.state, app.createdAt, app.updatedAt, draftDto(draft),
             activeDeployment = active?.let { dtos[it.id] }, latestDeployment = latest?.let { dtos[it.id] },
+            publicUrls = views.publicUrls(listOf(app))[appId].orEmpty(),
         )
     }
 

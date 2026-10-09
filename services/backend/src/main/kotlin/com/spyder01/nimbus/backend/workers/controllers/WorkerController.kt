@@ -1,11 +1,9 @@
 package com.spyder01.nimbus.backend.workers.controllers
 
-import com.spyder01.nimbus.backend.shared.ApiException
 import com.spyder01.nimbus.backend.shared.userId
 import com.spyder01.nimbus.backend.workers.dto.WorkerDto
 import com.spyder01.nimbus.backend.workers.dto.WorkerSettingsDto
 import com.spyder01.nimbus.backend.workers.services.WorkerService
-import org.springframework.http.HttpStatus
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.core.user.OAuth2User
@@ -46,22 +44,8 @@ class WorkerController(
         @AuthenticationPrincipal user: OAuth2User,
         @PathVariable name: String,
         @RequestBody body: JsonNode,
-    ): WorkerSettingsDto =
-        service.replaceSettings(name, whole(body, "parallelJobs"), whole(body, "leaseSeconds"), user.userId())
-
-    private fun whole(body: JsonNode, field: String): Int? {
-        val allowed = setOf("parallelJobs", "leaseSeconds")
-        if (!body.isObject || body.propertyNames().any { it !in allowed }) throw invalid(allowed)
-        val value = body.get(field) ?: throw invalid(allowed)
-        return when {
-            value.isNull -> null
-            value.isIntegralNumber && value.canConvertToInt() -> value.intValue()
-            else -> throw ApiException(HttpStatus.BAD_REQUEST, "invalid_body", "$field must be a whole number or null")
-        }
+    ): WorkerSettingsDto {
+        val (parallelJobs, leaseSeconds) = parseSettingsBody(body)
+        return service.replaceSettings(name, parallelJobs, leaseSeconds, user.userId())
     }
-
-    private fun invalid(allowed: Set<String>) = ApiException(
-        HttpStatus.BAD_REQUEST, "invalid_body",
-        "The body must be a JSON object with exactly ${allowed.joinToString(" and ") { "'$it'" }} (each a whole number, or null to inherit)",
-    )
 }

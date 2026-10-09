@@ -4,7 +4,7 @@ import { ProfileFields, useProfileForm } from '@/components/profile-form'
 import { useSession } from '@/components/session-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
-import type { Me } from '@/lib/auth'
+import { ROLE_LABEL, type Me } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
 export default function SettingsPage() {
@@ -24,7 +24,7 @@ export default function SettingsPage() {
         <Section title="Account" description="You're signed in with a connected provider.">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-muted-foreground text-sm">
-              Role: <span className="text-foreground font-medium">{me.role === 'ADMIN' ? 'Admin' : 'Member'}</span>
+              Role: <span className="text-foreground font-medium">{ROLE_LABEL[me.role]}</span>
             </div>
             <Button variant="outline" onClick={signOut}>
               <LogOut /> Sign out

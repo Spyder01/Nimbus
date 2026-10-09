@@ -8,6 +8,9 @@ name: Build and publish worker image
 #   POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 # and takes these optional ones (defaults are baked into the image, see services/worker/Dockerfile):
 #   WORKER_POOL, WORKER_NAME, WORKER_PARALLEL_JOBS, WORKER_LEASE_SECONDS, WORKER_HTTP_PORT
+# and, to deploy to a cluster instead of the default fake runner:
+#   WORKER_RUNNER=kubernetes with WORKER_KUBE_IN_CLUSTER=true (or WORKER_KUBECONFIG and WORKER_KUBE_CONTEXT),
+#   WORKER_DEPLOY_TIMEOUT_SECONDS, and for public containers WORKER_BASE_DOMAIN and WORKER_GATEWAY (<namespace>/<name>)
 
 on:
   push:

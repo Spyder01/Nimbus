@@ -10,8 +10,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
-/** Turns API errors into `{error, message, ...}` bodies. Scoped to the apps and workers controllers. */
-@RestControllerAdvice(basePackages = ["com.spyder01.nimbus.backend.apps.controllers", "com.spyder01.nimbus.backend.workers.controllers"])
+/** Turns API errors into `{error, message, ...}` bodies. Scoped to the apps, workers and users controllers. */
+@RestControllerAdvice(
+    basePackages = [
+        "com.spyder01.nimbus.backend.apps.controllers",
+        "com.spyder01.nimbus.backend.workers.controllers",
+        "com.spyder01.nimbus.backend.users.controllers",
+    ],
+)
 class AppExceptionHandler {
     @ExceptionHandler(ApiException::class)
     fun api(e: ApiException): ResponseEntity<Map<String, Any?>> =

@@ -1,5 +1,6 @@
 package com.spyder01.nimbus.backend.workers.repositories
 
+import com.spyder01.nimbus.backend.workers.dto.PoolDto
 import com.spyder01.nimbus.backend.workers.dto.SettingValues
 import com.spyder01.nimbus.backend.workers.dto.WorkerDto
 import com.spyder01.nimbus.backend.workers.dto.WorkerSettingsView
@@ -65,6 +66,65 @@ class WorkerRepository(
             """.trimIndent(),
         )
             .param("name", name)
+            .param("jobs", parallelJobs, java.sql.Types.INTEGER)
+            .param("lease", leaseSeconds, java.sql.Types.INTEGER)
+            .param("by", updatedBy)
+            .update()
+    }
+
+    /**
+     * Pools, with their default settings: every pool that has a worker or stored defaults, optionally just one.
+     * A pool exists as long as one of those is true, so defaults can still be edited while all its workers are gone.
+     */
+    fun findPools(name: String? = null): List<PoolDto> =
+        jdbc.sql(
+            """
+            WITH names AS (
+                SELECT pool AS name FROM worker_slots
+                UNION
+                SELECT name FROM worker_settings WHERE scope = 'POOL'
+            )
+            SELECT n.name,
+                   (SELECT count(*) FROM worker_slots s WHERE s.pool = n.name) AS workers,
+                   (SELECT count(*) FROM worker_slots s WHERE s.pool = n.name AND s.lease_expires_at > clock_timestamp()) AS online,
+                   (SELECT count(*) FROM worker_slots s
+                      JOIN worker_settings w ON w.scope = 'WORKER' AND w.name = s.name
+                     WHERE s.pool = n.name AND (w.parallel_jobs IS NOT NULL OR w.lease_seconds IS NOT NULL)) AS overriding,
+                   p.parallel_jobs, p.lease_seconds, p.updated_at, p.updated_by
+            FROM names n
+            LEFT JOIN worker_settings p ON p.scope = 'POOL' AND p.name = n.name
+            WHERE CAST(:name AS TEXT) IS NULL OR n.name = CAST(:name AS TEXT)
+            ORDER BY n.name
+            """.trimIndent(),
+        )
+            .param("name", name)
+            .query { rs, _ ->
+                fun int(col: String): Int? = rs.getInt(col).takeUnless { rs.wasNull() }
+                PoolDto(
+                    name = rs.getString("name"),
+                    workers = rs.getInt("workers"),
+                    online = rs.getInt("online"),
+                    overriding = rs.getInt("overriding"),
+                    defaults = SettingValues(int("parallel_jobs"), int("lease_seconds")),
+                    updatedAt = rs.getObject("updated_at", OffsetDateTime::class.java)?.toInstant(),
+                    updatedBy = rs.getObject("updated_by", UUID::class.java),
+                )
+            }
+            .list()
+
+    /** Replaces a pool's default settings; a null value goes back to each worker's startup value. Same versioning as workers. */
+    fun replacePoolDefaults(pool: String, parallelJobs: Int?, leaseSeconds: Int?, updatedBy: UUID) {
+        jdbc.sql(
+            """
+            INSERT INTO worker_settings (scope, name, parallel_jobs, lease_seconds, updated_by)
+            VALUES ('POOL', :name, :jobs, :lease, :by)
+            ON CONFLICT (scope, name) DO UPDATE
+                SET parallel_jobs = EXCLUDED.parallel_jobs,
+                    lease_seconds = EXCLUDED.lease_seconds,
+                    updated_by    = EXCLUDED.updated_by
+            """.trimIndent(),
+        )
+            .param("name", pool)
             .param("jobs", parallelJobs, java.sql.Types.INTEGER)
             .param("lease", leaseSeconds, java.sql.Types.INTEGER)
             .param("by", updatedBy)

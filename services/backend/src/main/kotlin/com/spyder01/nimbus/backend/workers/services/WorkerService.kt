@@ -1,6 +1,7 @@
 package com.spyder01.nimbus.backend.workers.services
 
 import com.spyder01.nimbus.backend.shared.ApiException
+import com.spyder01.nimbus.backend.workers.dto.PoolDto
 import com.spyder01.nimbus.backend.workers.dto.WorkerDto
 import com.spyder01.nimbus.backend.workers.dto.WorkerSettingsDto
 import com.spyder01.nimbus.backend.workers.repositories.WorkerRepository
@@ -37,7 +38,30 @@ class WorkerService(
     @Transactional
     fun replaceSettings(name: String, parallelJobs: Int?, leaseSeconds: Int?, updatedBy: UUID): WorkerSettingsDto {
         if (!workers.exists(name)) throw notFound(name)
+        validate(parallelJobs, leaseSeconds)
+        workers.replaceOverride(name, parallelJobs, leaseSeconds, updatedBy)
+        return settings(name)
+    }
 
+    @Transactional(readOnly = true)
+    fun pools(): List<PoolDto> = workers.findPools()
+
+    @Transactional(readOnly = true)
+    fun pool(name: String): PoolDto = workers.findPools(name).singleOrNull() ?: throw poolNotFound(name)
+
+    /**
+     * Replaces a pool's default settings, which apply to every worker in it that has no value of its own. A null goes
+     * back to each worker's startup value. Workers pick the change up on their next heartbeat, like their own settings.
+     */
+    @Transactional
+    fun replacePoolDefaults(name: String, parallelJobs: Int?, leaseSeconds: Int?, updatedBy: UUID): PoolDto {
+        pool(name)
+        validate(parallelJobs, leaseSeconds)
+        workers.replacePoolDefaults(name, parallelJobs, leaseSeconds, updatedBy)
+        return pool(name)
+    }
+
+    private fun validate(parallelJobs: Int?, leaseSeconds: Int?) {
         val errors = mutableListOf<Map<String, String>>()
         if (parallelJobs != null && parallelJobs !in MIN_PARALLEL_JOBS..MAX_PARALLEL_JOBS) {
             errors += mapOf("field" to "parallelJobs", "message" to "Must be between $MIN_PARALLEL_JOBS and $MAX_PARALLEL_JOBS")
@@ -48,10 +72,9 @@ class WorkerService(
         if (errors.isNotEmpty()) {
             throw ApiException(HttpStatus.BAD_REQUEST, "invalid_settings", "The settings are not valid", mapOf("errors" to errors))
         }
-
-        workers.replaceOverride(name, parallelJobs, leaseSeconds, updatedBy)
-        return settings(name)
     }
+
+    private fun poolNotFound(name: String) = ApiException(HttpStatus.NOT_FOUND, "pool_not_found", "No worker pool is called '$name'")
 
     private fun notFound(name: String) = ApiException(HttpStatus.NOT_FOUND, "worker_not_found", "No worker is registered as '$name'")
 }

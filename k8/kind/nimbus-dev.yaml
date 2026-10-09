@@ -1,0 +1,12 @@
+# The kind cluster that runs users' apps in development (see scripts/dev-cluster.sh).
+# Public containers are reached through the Gateway on port 80 of this machine: the Gateway's Service is a NodePort
+# (30080, see k8/gateway/gateway.yaml) and kind forwards it to localhost:80.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 80
+        listenAddress: "127.0.0.1"
+        protocol: TCP

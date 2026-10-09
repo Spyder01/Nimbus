@@ -219,6 +219,23 @@ class AppsApiTest(
         }
     }
 
+    @Test
+    fun `a public container needs a port and a name short enough for its web address`() {
+        val id = createApp()
+        val nodes = listOf(
+            node("a", name = "web", extra = mapOf("expose" to true, "port" to null)),
+            node("b", name = "x".repeat(55), extra = mapOf("expose" to true)),
+            node("c", name = "y".repeat(54), extra = mapOf("expose" to true)),
+            node("d", name = "z".repeat(60)), // as long as a name may be, but not public: no address to build
+        )
+        val body = call(alice, put("/api/apps/$id/draft"), draft(nodes, base = 0)).andExpect(status().isOk).andReturn().response.contentAsString
+        val problems = HashSet<String>()
+        for (p in json.readTree(body).get("problems")) problems += p.get("nodeId").asString() + "." + p.get("field").asString()
+        assertTrue("a.port" in problems, "a public container with no port: $problems")
+        assertTrue("b.name" in problems, "55 characters is one too many for a public name: $problems")
+        for (fine in listOf("c.name", "c.port", "d.name", "d.port", "b.port")) assertTrue(fine !in problems, "$fine should be fine: $problems")
+    }
+
     // ---- versions ----
 
     @Test

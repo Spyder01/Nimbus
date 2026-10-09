@@ -59,6 +59,8 @@ export interface DeploymentTask {
   dependsOn: string[]
   startedAt: string | null
   finishedAt: string | null
+  /** Where a public container can be opened, once it is deployed. */
+  url: string | null
 }
 
 export interface Deployment {
@@ -80,9 +82,17 @@ export interface Deployment {
   tasks: DeploymentTask[] | null
 }
 
+/** A public container of a running app, and where it can be opened. */
+export interface PublicUrl {
+  container: string
+  url: string
+}
+
 export interface DeploymentList {
   appState: AppState
   deployments: Deployment[]
+  /** Where the running app's public containers can be opened; empty unless the app is running. */
+  publicUrls: PublicUrl[]
 }
 
 export const isActive = (d: Deployment | null | undefined): d is Deployment =>
@@ -97,6 +107,7 @@ export interface AppSummary {
   updatedAt: string | null
   /** The queued or running deployment, if any. */
   activeDeployment: Deployment | null
+  publicUrls: PublicUrl[]
 }
 
 export interface AppDetail {
@@ -108,6 +119,7 @@ export interface AppDetail {
   draft: Draft
   activeDeployment: Deployment | null
   latestDeployment: Deployment | null
+  publicUrls: PublicUrl[]
 }
 
 export interface VersionSummary {

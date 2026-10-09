@@ -1,0 +1,17 @@
+# A small app to try Nimbus with. Import it from the dashboard ("Import YAML"), open it, and press Deploy.
+#
+# "web" is public and has a page you can look at: it shows which copy of the container answered, so reloading
+# the page shows the two replicas taking turns. "api" is private (only reachable from inside the app) and
+# is deployed first, because web needs it.
+app: hello-ui
+services:
+  web:
+    image: nginxdemos/hello:latest
+    port: 80
+    expose: true
+    replicas: 2
+    needs: [api]
+  api:
+    image: traefik/whoami:v1.10.3
+    port: 80
+    replicas: 1

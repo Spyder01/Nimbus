@@ -5,7 +5,6 @@ import com.spyder01.nimbus.backend.users.entities.User
 import com.spyder01.nimbus.backend.users.entities.UserIdentity
 import com.spyder01.nimbus.backend.users.repositories.UserIdentityRepository
 import com.spyder01.nimbus.backend.users.repositories.UserRepository
-import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService
@@ -63,7 +62,7 @@ class OAuth2LoginService(
                 "No user-name-attribute configured for ${provider.name}"
             }
         return DefaultOAuth2User(
-            listOf(SimpleGrantedAuthority("ROLE_${user.role.name}")),
+            user.role.authorities(),
             oauthUser.attributes + ("userId" to user.id.toString()),
             nameAttribute,
         )

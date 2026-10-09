@@ -8,6 +8,7 @@ import { CreateAppDialog } from '@/features/apps/create-app-dialog'
 import { DeleteAppDialog } from '@/features/apps/delete-app-dialog'
 import { ImportAppDialog } from '@/features/apps/import-app-dialog'
 import { useApps, useCancelDeployment } from '@/features/apps/queries'
+import { PublicLinks } from '@/features/apps/public-links'
 import { StateBadge } from '@/features/apps/state-badge'
 import { isActive, type AppSummary } from '@/features/apps/types'
 import { timeAgo } from '@/lib/time'
@@ -99,6 +100,8 @@ function AppCard({ app, onDelete }: { app: AppSummary; onDelete: () => void }) {
         <StateBadge state={app.state} deployment={active} />
         <span className="text-muted-foreground text-xs">Updated {timeAgo(app.updatedAt)}</span>
       </div>
+      {/* above the stretched link, so the card still opens the app everywhere else */}
+      {app.publicUrls.length > 0 && <PublicLinks urls={app.publicUrls} className="relative z-10 mt-3 w-full justify-center" />}
       {active && <div className="indeterminate bg-muted absolute inset-x-0 bottom-0 h-0.5 overflow-hidden" aria-hidden="true" />}
     </li>
   )

@@ -66,6 +66,8 @@ class DeploymentTask(
     var startedAt: Instant? = null,
     @Column(name = "finished_at")
     var finishedAt: Instant? = null,
+    /** Where the container can be opened from outside the cluster, once it is deployed; null if it isn't public. */
+    var url: String? = null,
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

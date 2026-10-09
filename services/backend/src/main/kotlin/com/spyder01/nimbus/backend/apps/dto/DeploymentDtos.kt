@@ -22,6 +22,8 @@ data class DeploymentTaskDto(
     val dependsOn: List<String>,
     val startedAt: Instant?,
     val finishedAt: Instant?,
+    /** Where a public container can be opened, once it is deployed. */
+    val url: String? = null,
 )
 
 data class DeploymentDto(
@@ -44,4 +46,9 @@ data class DeploymentDto(
 )
 
 /** The deployment list plus the app's authoritative state, so one poll answers everything the UI shows. */
-data class DeploymentList(val appState: AppState, val deployments: List<DeploymentDto>)
+data class DeploymentList(
+    val appState: AppState,
+    val deployments: List<DeploymentDto>,
+    /** Where the running app's public containers can be opened; empty unless the app is running. */
+    val publicUrls: List<PublicUrlDto> = emptyList(),
+)

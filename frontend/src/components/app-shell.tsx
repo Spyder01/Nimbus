@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Settings } from 'lucide-react'
+import { LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Server, Settings, Users } from 'lucide-react'
 import { NavLink, Navigate, Outlet, useMatch } from 'react-router'
 import { Avatar } from '@/components/avatar'
 import { Logo } from '@/components/logo'
@@ -7,7 +7,7 @@ import { Splash } from '@/components/splash'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/components/session-provider'
-import { homeFor } from '@/lib/auth'
+import { homeFor, isAdmin as hasAdmin } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 
 const NAV = [
@@ -15,7 +15,10 @@ const NAV = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
-const ADMIN_NAV = [{ to: '/admin/workers', label: 'Workers', icon: Server }]
+const ADMIN_NAV = [
+  { to: '/admin/workers', label: 'Workers', icon: Server },
+  { to: '/admin/members', label: 'Members', icon: Users },
+]
 
 const KEY = 'nimbus-nav-collapsed'
 
@@ -50,7 +53,7 @@ export function AppShell() {
   const onCanvas = !!useMatch('/apps/:id')
   if (loading) return <Splash />
   if (!me || !me.profileUpdated) return <Navigate to={homeFor(me)} replace />
-  const isAdmin = me.role === 'ADMIN'
+  const isAdmin = hasAdmin(me)
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

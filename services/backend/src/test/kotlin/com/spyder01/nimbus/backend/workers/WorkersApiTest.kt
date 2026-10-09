@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.json.JsonMapper
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -263,5 +264,123 @@ class WorkersApiTest(
         slot("$pool-0", 0, "i-a")
         call(admin, put("/api/workers/$pool-0/settings"), """{"parallelJobs": 3, "leaseSeconds": null}""", csrf = false).andExpect(status().isForbidden)
         assertNotNull(admin.id)
+    }
+
+    // ---- pools and their defaults ----
+
+    private fun poolOf(name: String) = json.readTree(asAdmin(get("/api/worker-pools/$name")).andReturn().response.contentAsString)
+
+    @Test
+    fun `only signed-in admins can use the pool endpoints`() {
+        slot("$pool-0", 0, "i-0")
+        val urls = listOf("/api/worker-pools", "/api/worker-pools/$pool")
+        for (u in urls) mvc.perform(get(u)).andExpect(status().isUnauthorized)
+        for (u in urls) call(member, get(u)).andExpect(status().isForbidden)
+        call(member, put("/api/worker-pools/$pool/settings"), """{"parallelJobs":3,"leaseSeconds":null}""").andExpect(status().isForbidden)
+        for (u in urls) asAdmin(get(u)).andExpect(status().isOk)
+        assertEquals(0, jdbc.sql("SELECT count(*) FROM worker_settings WHERE name = :n").param("n", pool).query(Int::class.java).single(), "a refused request must write nothing")
+    }
+
+    @Test
+    fun `lists pools with their workers, defaults and how many workers override them`() {
+        slot("$pool-0", 0, "i-a")
+        slot("$pool-1", 1, "i-b", live = false)
+        slot("$pool-2", 2, "i-c")
+        slot("o-0", 0, "i-d", poolName = "zz-other-$pool")
+        stored("POOL", pool, 7, null)
+        stored("WORKER", "$pool-0", 3, null)       // overrides a setting
+        stored("WORKER", "$pool-1", null, null)    // a row, but it overrides nothing
+        stored("POOL", "zz-empty-$pool", 2, 300)   // defaults set before any worker joined
+
+        val all = json.readTree(asAdmin(get("/api/worker-pools")).andReturn().response.contentAsString).filter { it.get("name").asString().endsWith(pool) }
+        assertEquals(listOf("zz-empty-$pool", "zz-other-$pool", pool).sorted(), all.map { it.get("name").asString() }, "ordered by name, including a pool that only has defaults")
+
+        val p = all.first { it.get("name").asString() == pool }
+        assertEquals(3, p.get("workers").asInt()); assertEquals(2, p.get("online").asInt()); assertEquals(1, p.get("overriding").asInt())
+        assertEquals(7, p.get("defaults").get("parallelJobs").asInt()); assertTrue(p.get("defaults").get("leaseSeconds").isNull)
+
+        val empty = all.first { it.get("name").asString() == "zz-empty-$pool" }
+        assertEquals(0, empty.get("workers").asInt()); assertEquals(300, empty.get("defaults").get("leaseSeconds").asInt())
+        val noDefaults = all.first { it.get("name").asString() == "zz-other-$pool" }
+        assertTrue(noDefaults.get("defaults").get("parallelJobs").isNull); assertTrue(noDefaults.get("updatedAt").isNull)
+    }
+
+    @Test
+    fun `one pool by name, or 404`() {
+        slot("$pool-0", 0, "i-a")
+        asAdmin(get("/api/worker-pools/$pool")).andExpect(status().isOk).andExpect(jsonPath("$.name").value(pool))
+        asAdmin(get("/api/worker-pools/zz-nope-$pool")).andExpect(status().isNotFound).andExpect(jsonPath("$.error").value("pool_not_found"))
+    }
+
+    @Test
+    fun `putting pool defaults saves them, records who, and every worker without its own value follows`() {
+        slot("$pool-0", 0, "i-a", applied = 0)
+        slot("$pool-1", 1, "i-b", applied = 0)
+        stored("WORKER", "$pool-1", 3, null)
+        val before = settingsOf("$pool-0").get("desiredVersion").asLong()
+
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 9, "leaseSeconds": 600}""")
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.defaults.parallelJobs").value(9)).andExpect(jsonPath("$.defaults.leaseSeconds").value(600))
+            .andExpect(jsonPath("$.updatedBy").value(admin.id.toString())).andExpect(jsonPath("$.updatedAt").exists())
+            .andExpect(jsonPath("$.workers").value(2)).andExpect(jsonPath("$.overriding").value(1))
+
+        val follower = settingsOf("$pool-0")
+        assertEquals(9, follower.get("effective").get("parallelJobs").asInt()); assertEquals(600, follower.get("effective").get("leaseSeconds").asInt())
+        assertTrue(follower.get("desiredVersion").asLong() > before, "a new version, so the worker notices")
+        assertFalse(follower.get("inSync").asBoolean(), "it has not applied the change yet")
+        val own = settingsOf("$pool-1")
+        assertEquals(3, own.get("effective").get("parallelJobs").asInt(), "a worker's own value still wins")
+        assertEquals(600, own.get("effective").get("leaseSeconds").asInt(), "but it follows the pool for what it didn't set")
+    }
+
+    @Test
+    fun `putting defaults again replaces both, and nulls go back to each workers startup value`() {
+        slot("$pool-0", 0, "i-a")
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 9, "leaseSeconds": 600}""").andExpect(status().isOk)
+        val v1 = settingsOf("$pool-0").get("desiredVersion").asLong()
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 4, "leaseSeconds": null}""")
+            .andExpect(jsonPath("$.defaults.parallelJobs").value(4)).andExpect(jsonPath("$.defaults.leaseSeconds").doesNotExist())
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": null, "leaseSeconds": null}""").andExpect(status().isOk)
+        assertTrue(settingsOf("$pool-0").get("desiredVersion").asLong() > v1, "clearing is a change too")
+        assertTrue(settingsOf("$pool-0").get("effective").get("parallelJobs").isNull)
+        assertEquals(1, jdbc.sql("SELECT count(*) FROM worker_settings WHERE scope='POOL' AND name=:n").param("n", pool).query(Int::class.java).single(), "one row, with NULLs")
+    }
+
+    @Test
+    fun `pool defaults can be set before any worker joins, if defaults already exist`() {
+        stored("POOL", pool, 2, null)
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 6, "leaseSeconds": null}""").andExpect(status().isOk).andExpect(jsonPath("$.workers").value(0))
+        assertEquals(6, poolOf(pool).get("defaults").get("parallelJobs").asInt())
+    }
+
+    @Test
+    fun `bad pool settings are refused and change nothing`() {
+        slot("$pool-0", 0, "i-a")
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 5, "leaseSeconds": 120}""").andExpect(status().isOk)
+        for ((jobs, lease) in listOf(0 to 120, 101 to 120, 5 to 59, 5 to 86401)) {
+            asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": $jobs, "leaseSeconds": $lease}""").andExpect(status().isBadRequest).andExpect(jsonPath("$.error").value("invalid_settings"))
+        }
+        asAdmin(put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 0, "leaseSeconds": 5}""").andExpect(jsonPath("$.errors.length()").value(2))
+        for (b in listOf("""{}""", """{"parallelJobs": 3}""", """{"parallelJob": 3, "leaseSeconds": 200}""", """{"parallelJobs": 3, "leaseSeconds": 200, "x": 1}""", """{"parallelJobs": "5", "leaseSeconds": 200}""", """[1]""", """not json""")) {
+            asAdmin(put("/api/worker-pools/$pool/settings"), b).andExpect(status().isBadRequest)
+        }
+        val d = poolOf(pool).get("defaults")
+        assertEquals(5, d.get("parallelJobs").asInt()); assertEquals(120, d.get("leaseSeconds").asInt())
+    }
+
+    @Test
+    fun `defaults can only be put for a pool that exists, with a csrf token`() {
+        asAdmin(put("/api/worker-pools/zz-nope-$pool/settings"), """{"parallelJobs": 3, "leaseSeconds": null}""").andExpect(status().isNotFound).andExpect(jsonPath("$.error").value("pool_not_found"))
+        assertEquals(0, jdbc.sql("SELECT count(*) FROM worker_settings WHERE name = :n").param("n", "zz-nope-$pool").query(Int::class.java).single(), "a typo must not invent a pool")
+        slot("$pool-0", 0, "i-a")
+        call(admin, put("/api/worker-pools/$pool/settings"), """{"parallelJobs": 3, "leaseSeconds": null}""", csrf = false).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `a worker named pools is still reachable, because pools live under their own path`() {
+        slot("pools", null, "i-x", poolName = pool)
+        asAdmin(get("/api/workers/pools")).andExpect(status().isOk).andExpect(jsonPath("$.name").value("pools"))
+        asAdmin(get("/api/worker-pools")).andExpect(status().isOk)
     }
 }
