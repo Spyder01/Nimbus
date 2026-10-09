@@ -9,6 +9,18 @@ asked for one.
 
 ![The Nimbus landing page: a diagram of containers with their connections, and a sign-in with GitHub button](docs/images/landing.webp)
 
+## See it in action
+
+![A design on the canvas: web, API, Postgres and Redis containers connected by arrows](docs/media/linkedin/04-canvas-running-dark.png)
+
+| Deploying, layer by layer | Live addresses once it is up |
+| --- | --- |
+| ![A deployment in progress, with each container showing its state](docs/media/linkedin/07-deploying-dark.png) | ![A finished deployment with a Live at bar listing the public addresses](docs/media/linkedin/08-deployed-live-addresses-dark.png) |
+
+Watch the [1-minute walkthrough](docs/media/linkedin/nimbus-demo-short.mp4) (or the
+[full version](docs/media/linkedin/nimbus-demo-full.mp4)). These were captured from the real interface running against a
+stand-in API with sample data.
+
 ## What you can do
 
 - **Design visually.** Add containers on a canvas, set their image, port, replicas and environment, and connect them.
